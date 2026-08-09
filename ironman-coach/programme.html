@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Programme du bloc — Ironman Coach</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar"></nav>
+
+  <main class="content">
+    <h1>Programme du bloc</h1>
+    <p class="lead">4 semaines · 9 à 11 séances par semaine (natation optionnelle), à agencer comme tu veux.</p>
+
+    <!-- Aides repliées par défaut : à consulter en cas d'oubli, pas imposées -->
+    <details class="aide">
+      <summary>ℹ️ Comment utiliser cette page (si besoin)</summary>
+      <p>Chaque semaine est un <strong>menu</strong> : pas de jour imposé, tu choisis
+      quoi faire le jour même. Sur chaque carte : le <strong>statut</strong>
+      (✓ Faite / ≈ Faite en adapté / ✗ Pas pu — la raison t'est demandée et je la lis),
+      la date réelle, la difficulté (1&nbsp;=&nbsp;promenade, 10&nbsp;=&nbsp;à l'agonie),
+      tes données (format libre) et ton ressenti. Le bouton en bas de chaque semaine
+      permet d'ajouter une <strong>séance libre</strong> non prévue. Rééduc pied 5 min
+      tous les jours, à cocher dans le <a href="journal.html">journal</a>. Douleur
+      &gt; 3/10 qui monte : on arrête et on me le raconte dans le ressenti.</p>
+    </details>
+
+    <details class="aide">
+      <summary>🧩 Règles pour agencer ta semaine (si besoin)</summary>
+      <ul id="regles-agencement"></ul>
+    </details>
+
+    <!-- Les 4 semaines sont générées ici depuis programme-data.js -->
+    <div id="semaines"></div>
+  </main>
+</div>
+
+<script src="assets/sync-fichier.js"></script>
+<script src="assets/programme-data.js"></script>
+<script src="assets/main.js"></script>
+<script src="assets/seance.js"></script>
+<script>
+/* ---------- Rendu du programme ----------
+   Une semaine = un accordéon <details> contenant son menu de séances
+   + une zone "séances libres". La semaine EN COURS est ouverte. */
+"use strict";
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("regles-agencement").innerHTML =
+    AGENCEMENT.map(r => `<li>${r}</li>`).join("");
+
+  const dates = datesDuBloc();
+  const aujourdhui = aujourdhuiISO();
+  const conteneur = document.getElementById("semaines");
+
+  conteneur.innerHTML = BLOC.semaines.map((sem, wi) => {
+    const debut = dates[wi * 7], fin = dates[wi * 7 + 6];
+    const enCours = aujourdhui >= debut && aujourdhui <= fin;
+    const ouverte = enCours || (aujourdhui < dates[0] && wi === 0);
+    return `
+      <details ${ouverte ? "open" : ""}>
+        <summary>Semaine ${sem.num} — ${sem.theme}
+          <span style="color:var(--text-2);font-weight:400;font-size:.85rem">
+            (${dateJolie(debut).split(" ").slice(1).join(" ")} → ${dateJolie(fin).split(" ").slice(1).join(" ")})
+          </span>
+        </summary>
+        <div class="box imp"><strong>Le focus de la semaine</strong>${sem.focus}</div>
+        ${sem.seances.map(s => renderSeance(s)).join("")}
+        <div id="extras-w${sem.num}"></div>
+      </details>`;
+  }).join("");
+
+  bindAll(conteneur); // connecte tous les champs générés à la sauvegarde
+
+  // Séances libres : rendu + bouton d'ajout, par semaine
+  BLOC.semaines.forEach(sem =>
+    initExtras(sem.num, document.getElementById(`extras-w${sem.num}`)));
+});
+</script>
+</body>
+</html>

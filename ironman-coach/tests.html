@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tests du bloc — Ironman Coach</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar"></nav>
+
+  <main class="content">
+    <h1>Tests du bloc</h1>
+    <p class="lead">Semaine 4 · du 24 au 30 août — premier test course de ta vie + références vélo, muscu, corps.</p>
+
+    <details class="aide">
+      <summary>ℹ️ Pourquoi ces tests (si besoin)</summary>
+      <p>Un plan Ironman sans mesures, c'est de la décoration. Ces relevés deviennent
+      ta <em>ligne de base</em> : les allures de course du Bloc 3 seront calibrées sur ton test course, les zones vélo sur ton test de 20 min, et la progression muscu/corps se
+      lira noir sur blanc, bloc après bloc. Fais les tests REPOSÉ et remplis les
+      résultats juste après, à chaud. Et rappel : un test raté, ça n'existe pas —
+      c'est ton premier relevé, quel que soit le chiffre il devient la référence à
+      battre. Le seul test raté est celui qu'on ne fait pas.</p>
+    </details>
+
+    <!-- Les tests sont générés ici depuis TESTS (programme-data.js) -->
+    <div id="liste-tests"></div>
+
+    <div class="box done">
+      <strong>Quand tout est rempli</strong>
+      Retourne au <a href="index.html">tableau de bord</a>, clique
+      « Exporter mes données » et envoie-moi le fichier .json dans notre conversation.
+      J'analyse tout et je te construis le Bloc 3 sur mesure.
+    </div>
+  </main>
+</div>
+
+<script src="assets/sync-fichier.js"></script>
+<script src="assets/programme-data.js"></script>
+<script src="assets/main.js"></script>
+<script>
+/* ---------- Rendu des tests ----------
+   Même philosophie modulaire : les tests sont des DONNÉES (TESTS dans
+   programme-data.js). Ajouter un test à un bloc = ajouter un objet là-bas. */
+"use strict";
+
+function champTest(idTest, c) {
+  const cle = `tests.${idTest}.${c.cle}`;
+  if (c.type === "textarea")
+    return `<label class="field" style="grid-column:1/-1"><span>${c.label}</span>
+      <textarea data-bind="${cle}"></textarea></label>`;
+  return `<label class="field"><span>${c.label}</span>
+      <input type="${c.type}" step="any" data-bind="${cle}"></label>`;
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const conteneur = document.getElementById("liste-tests");
+  conteneur.innerHTML = TESTS.map(t => `
+    <div class="card">
+      <h3>${t.titre} <span class="badge test">${t.quand}</span></h3>
+      <p class="meta"><strong>Protocole :</strong> ${t.protocole}</p>
+      <div class="box def" style="margin:.6rem 0"><strong>Repère du coach</strong>${t.cible}</div>
+      <div class="grid">${t.champs.map(c => champTest(t.id, c)).join("")}</div>
+    </div>`).join("");
+
+  bindAll(conteneur);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+# Liste blanche : SEULS les éléments du site sont publiés.
+# Tout le reste du dossier SPORT (PDF, captures, notes...) reste privé, hors du repo.
+/*
+!/ironman-simple
+!/ironman-coach
+!/index.html
+!/blob-id.txt
+!/sauvegardes
+!/.github
+!/.gitignore
+.DS_Store
+firebase-debug.log

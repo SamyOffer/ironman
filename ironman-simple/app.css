@@ -1,0 +1,183 @@
+/* ============================================================
+   IRONMAN SIMPLE — design sobre & moderne, une seule page.
+   Même données que le site complet (../ironman-coach), autre peau.
+   ============================================================ */
+
+:root {
+  --bg: #fafaf8;
+  --carte: #ffffff;
+  --texte: #16161a;
+  --texte-2: #71717a;
+  --bord: #e7e7e2;
+  --accent: #ea580c;          /* orange — action, en cours */
+  --accent-doux: #fff3ea;
+  --vert: #16a34a;  --vert-doux: #eaf7ee;
+  --rouge: #dc2626; --rouge-doux: #fdeeee;
+  --bleu: #2563eb;  --bleu-doux: #edf2fe;
+  --violet: #7c3aed; --violet-doux: #f3eefe;
+  --r: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #131316; --carte: #1c1c21; --texte: #f1f1ef; --texte-2: #9d9da6; --bord: #2c2c33;
+    --accent: #fb923c; --accent-doux: #33220f;
+    --vert: #4ade80; --vert-doux: #14291a; --rouge: #f87171; --rouge-doux: #331717;
+    --bleu: #93b4f8; --bleu-doux: #16203a; --violet: #b79df5; --violet-doux: #251c3d;
+  }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--texte);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px; line-height: 1.5;
+}
+main { max-width: 640px; margin: 0 auto; padding: 0 14px 60px; }
+h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--texte-2); margin: 26px 4px 8px; font-weight: 600; }
+button { font: inherit; cursor: pointer; }
+input, textarea, select { font: inherit; color: var(--texte); }
+
+/* ---------- Barre du haut ---------- */
+header {
+  position: sticky; top: 0; z-index: 10;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--bord);
+}
+.topbar { max-width: 640px; margin: 0 auto; padding: 12px 14px; display: flex; align-items: center; gap: 10px; }
+.topbar .titre { font-weight: 700; font-size: 1.02rem; flex: 1; }
+.topbar .titre small { display: block; font-weight: 400; font-size: .78rem; color: var(--texte-2); }
+
+/* Menu ⋯ */
+.menu { position: relative; }
+.menu > summary { list-style: none; cursor: pointer; width: 38px; height: 38px; border: 1px solid var(--bord); border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--carte); font-size: 1.2rem; }
+.menu > summary::-webkit-details-marker { display: none; }
+.menu-liste { position: absolute; right: 0; top: 44px; background: var(--carte); border: 1px solid var(--bord); border-radius: var(--r); box-shadow: 0 8px 30px rgba(0,0,0,.12); min-width: 230px; padding: 6px; }
+.menu-liste button, .menu-liste label { display: block; width: 100%; text-align: left; background: none; border: none; padding: 10px 12px; border-radius: 9px; font-size: .95rem; cursor: pointer; color: var(--texte); }
+.menu-liste button:hover, .menu-liste label:hover { background: var(--bg); }
+
+/* ---------- Pastilles de stats ---------- */
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+.pastille { background: var(--carte); border: 1px solid var(--bord); border-radius: var(--r); padding: 10px 6px; text-align: center; }
+.pastille b { display: block; font-size: 1.25rem; }
+.pastille span { font-size: .72rem; color: var(--texte-2); }
+.pastille.ok b { color: var(--vert); }
+.pastille.warn b { color: var(--accent); }
+
+/* ---------- Carte jour (journal rapide) ---------- */
+.carte { background: var(--carte); border: 1px solid var(--bord); border-radius: var(--r); padding: 14px; }
+.jour-entete { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.jour-entete b { flex: 1; font-size: 1rem; }
+.fleche { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--bord); background: var(--bg); font-size: 1rem; }
+.jour-grille { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.champ { display: flex; flex-direction: column; gap: 3px; }
+.champ span { font-size: .72rem; color: var(--texte-2); }
+.champ input, .champ textarea {
+  background: var(--bg); border: 1px solid var(--bord); border-radius: 10px; padding: 9px 10px; width: 100%;
+}
+.champ input:focus, .champ textarea:focus, .details input:focus, .details textarea:focus { outline: 2px solid var(--accent); border-color: transparent; }
+.toggle { display: flex; align-items: center; justify-content: center; gap: 6px; background: var(--bg); border: 1px solid var(--bord); border-radius: 10px; padding: 9px 6px; font-size: .85rem; cursor: pointer; user-select: none; }
+.toggle.actif { background: var(--vert-doux); border-color: var(--vert); color: var(--vert); font-weight: 600; }
+.lien-note { background: none; border: none; color: var(--texte-2); font-size: .82rem; padding: 6px 0 0; }
+.jour-note { grid-column: 1 / -1; }
+.jour-plus { grid-column: 1 / -1; display: none; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.jour-plus.ouvert, .jour-note.ouvert { display: grid; }
+.jour-note textarea { min-height: 54px; resize: vertical; }
+
+/* ---------- Sélecteur de semaine ---------- */
+.semaines { display: flex; gap: 8px; overflow-x: auto; padding: 2px; }
+.chip { border: 1px solid var(--bord); background: var(--carte); border-radius: 999px; padding: 7px 16px; font-size: .9rem; white-space: nowrap; }
+.chip.actif { background: var(--texte); color: var(--bg); border-color: var(--texte); font-weight: 600; }
+.theme-semaine { color: var(--texte-2); font-size: .85rem; margin: 8px 4px 0; }
+
+/* ---------- Lignes de séance ---------- */
+.seances { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.seance { background: var(--carte); border: 1px solid var(--bord); border-radius: var(--r); overflow: hidden; border-left: 4px solid var(--bord); }
+.seance.faite { border-left-color: var(--vert); }
+.seance.paspu { border-left-color: var(--rouge); }
+.ligne { display: flex; align-items: center; gap: 10px; padding: 11px 12px; cursor: pointer; }
+.sport { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.05rem; flex-shrink: 0; }
+.sport.muscu { background: var(--accent-doux); } .sport.natation { background: var(--bleu-doux); }
+.sport.velo { background: var(--vert-doux); } .sport.course { background: var(--violet-doux); }
+.sport.test { background: var(--rouge-doux); } .sport.repos { background: var(--bg); }
+.ligne .nom { flex: 1; min-width: 0; }
+.ligne .nom b { display: block; font-size: .95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ligne .nom small { color: var(--texte-2); font-size: .78rem; }
+.seance.faite .nom b { color: var(--texte-2); }
+
+/* Statuts : 3 boutons ronds, un tap = choisi (retap = annule) */
+.statuts { display: flex; gap: 5px; flex-shrink: 0; }
+.st { width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid var(--bord); background: var(--carte); color: var(--texte-2); font-size: .95rem; padding: 0; }
+.st[data-s="faite"].actif { background: var(--vert); border-color: var(--vert); color: #fff; }
+.st[data-s="adaptee"].actif { background: var(--accent); border-color: var(--accent); color: #fff; }
+.st[data-s="pas-pu"].actif { background: var(--rouge); border-color: var(--rouge); color: #fff; }
+
+/* Détails dépliés d'une séance */
+.details { display: none; padding: 0 12px 12px; border-top: 1px dashed var(--bord); }
+.seance.ouverte .details { display: block; }
+.details ul { margin: 10px 0; padding-left: 20px; font-size: .92rem; }
+.details li { margin: 3px 0; }
+.pourquoi { font-size: .88rem; color: var(--texte-2); background: var(--bg); border-radius: 10px; padding: 10px 12px; margin: 8px 0; display: none; }
+.pourquoi.ouvert { display: block; }
+.lien-pourquoi { background: none; border: none; color: var(--bleu); font-size: .85rem; padding: 4px 0; }
+.details .grille { display: grid; grid-template-columns: 130px 90px 1fr; gap: 8px; margin-top: 8px; }
+.details .pleine { grid-column: 1 / -1; }
+.details textarea { min-height: 50px; resize: vertical; background: var(--bg); border: 1px solid var(--bord); border-radius: 10px; padding: 9px 10px; width: 100%; }
+.raison { display: none; margin-top: 8px; }
+.raison.visible { display: block; }
+.raison input { border-color: var(--rouge) !important; }
+
+/* Séances libres */
+.ajout-libre { width: 100%; border: 1.5px dashed var(--bord); background: none; color: var(--texte-2); border-radius: var(--r); padding: 11px; font-size: .9rem; margin-top: 8px; }
+.suppr { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--rouge); color: var(--rouge); background: var(--rouge-doux); flex-shrink: 0; }
+
+/* ---------- Sections repliables (Tests, Progression) ---------- */
+details.section { background: var(--carte); border: 1px solid var(--bord); border-radius: var(--r); padding: 0 14px; margin-top: 10px; }
+details.section summary { list-style: none; display: flex; align-items: center; gap: 10px; padding: 13px 0; cursor: pointer; font-weight: 600; }
+details.section summary::-webkit-details-marker { display: none; }
+details.section summary .chevron { margin-left: auto; transition: transform .2s; color: var(--texte-2); }
+details.section[open] summary .chevron { transform: rotate(90deg); }
+details.section .contenu-section { padding-bottom: 14px; }
+
+/* Tests */
+.test-item { border-top: 1px solid var(--bord); padding: 12px 0; }
+.test-item b { font-size: .95rem; }
+.test-item .quand { font-size: .78rem; color: var(--texte-2); margin-bottom: 8px; }
+.test-item .grille-test { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.test-item .pleine { grid-column: 1 / -1; }
+.test-item input, .test-item textarea { background: var(--bg); border: 1px solid var(--bord); border-radius: 10px; padding: 9px 10px; width: 100%; }
+.test-item textarea { min-height: 46px; resize: vertical; }
+
+/* Graphiques compacts */
+.graphs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.graph { background: var(--bg); border-radius: 10px; padding: 10px; }
+.graph .titre-graph { font-size: .75rem; color: var(--texte-2); margin-bottom: 4px; }
+.graph svg { width: 100%; height: 56px; display: block; }
+.graph .vide { font-size: .78rem; color: var(--texte-2); padding: 14px 0; text-align: center; }
+.spark { stroke: var(--bleu); fill: none; stroke-width: 2; }
+.spark-point { fill: var(--bleu); }
+.barre-s { fill: var(--vert); } .barre-s.partiel { fill: var(--accent); }
+
+/* ---------- Divers ---------- */
+dialog {
+  border: 1px solid var(--bord); border-radius: var(--r); background: var(--carte); color: var(--texte);
+  max-width: 560px; width: calc(100vw - 40px); padding: 20px; max-height: 80vh;
+}
+dialog::backdrop { background: rgba(0,0,0,.45); }
+dialog h3 { margin-top: 0; }
+dialog p, dialog li { font-size: .92rem; }
+.fermer { float: right; border: none; background: var(--bg); border-radius: 50%; width: 32px; height: 32px; }
+
+#toast {
+  position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+  background: var(--vert-doux); color: var(--vert); border: 1px solid var(--vert);
+  border-radius: 999px; padding: 5px 16px; font-size: .82rem;
+  opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 50;
+}
+#toast.visible { opacity: 1; }
+
+@media (max-width: 480px) {
+  .details .grille { grid-template-columns: 1fr 1fr; }
+  .details .grille .pleine { grid-column: 1 / -1; }
+}

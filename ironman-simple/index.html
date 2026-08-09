@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ironman — Samy</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<header>
+  <div class="topbar">
+    <div class="titre">🏊🚴🏃 Ironman<small id="sous-titre"></small></div>
+    <details class="menu" id="menu">
+      <summary title="Menu">⋯</summary>
+      <div class="menu-liste">
+        <button onclick="exporterExcel(); menu.open=false">📊 Exporter en Excel</button>
+        <button onclick="exportJSON(); menu.open=false">💾 Sauvegarde .json (coach)</button>
+        <label>📥 Importer une sauvegarde
+          <input type="file" accept=".json" style="display:none" onchange="if(this.files[0]) importJSON(this.files[0])">
+        </label>
+        <button onclick="document.getElementById('dlg-aide').showModal(); menu.open=false">ℹ️ Aide &amp; règles</button>
+        <button onclick="location.href='../ironman-coach/index.html'">🗂 Version complète du site</button>
+      </div>
+    </details>
+  </div>
+</header>
+
+<main>
+  <!-- Pastilles de stats -->
+  <div class="stats" id="stats"></div>
+
+  <!-- Journal rapide du jour -->
+  <h2>Journal</h2>
+  <div class="carte" id="carte-jour"></div>
+
+  <!-- Semaine + séances -->
+  <h2>Séances</h2>
+  <div class="semaines" id="chips-semaines"></div>
+  <p class="theme-semaine" id="theme-semaine"></p>
+  <div class="seances" id="liste-seances"></div>
+
+  <!-- Tests (repliés) -->
+  <details class="section" id="section-tests">
+    <summary>🧪 Tests du bloc <span class="chevron">›</span></summary>
+    <div class="contenu-section" id="liste-tests"></div>
+  </details>
+
+  <!-- Progression (repliée) -->
+  <details class="section" open>
+    <summary>📈 Progression <span class="chevron">›</span></summary>
+    <div class="contenu-section graphs" id="graphs"></div>
+  </details>
+</main>
+
+<!-- Aide : tout ce qu'il faut savoir, UNE fois, hors du chemin -->
+<dialog id="dlg-aide">
+  <button class="fermer" onclick="this.closest('dialog').close()">✕</button>
+  <h3>L'essentiel</h3>
+  <p><b>Statuts :</b> ✓ faite · ≈ faite en adapté (remplacée/modifiée — dis quoi) · ✗ pas pu (dis pourquoi, je le lis). Re-taper = annuler. Taper sur une séance = détails.</p>
+  <p><b>Zone 2 :</b> tu peux parler pendant l'effort, FC 120-140. <b>Course :</b> allure conversation, petits pas rapides (~170/min), jamais 2 courses sur 2 jours d'affilée, douleur pied &gt; 3/10 = stop.</p>
+  <p><b>Agencement :</b> pas de course + Lower le même jour · Upper A/B et Lower A/B séparés de 48 h · 1 jour de repos complet/semaine · natation = bonus optionnel.</p>
+  <p><b>Chaque matin (30 s) :</b> douleur pied au réveil (0-10) + rééduc 5 min (élastiques, balle — et serviette sous les orteils pour les mollets aux Lower).</p>
+  <p><b>Sauvegarde :</b> tout est automatique. Excel = à partager / archiver. .json = à envoyer au coach chaque dimanche.</p>
+  <p style="color:var(--texte-2)">Pour les explications détaillées de chaque séance : bouton « pourquoi ? » dans la séance, ou la version complète du site (menu ⋯).</p>
+</dialog>
+
+<div id="toast">✓ sauvegardé</div>
+
+<!-- Les DONNÉES et l'EXPORT sont partagés avec le site complet : une seule source de vérité.
+     sync-fichier.js DOIT être chargé en premier : il fournit STORE_KEY et charge
+     les données depuis le fichier disque avant le démarrage des autres scripts. -->
+<script src="../ironman-coach/assets/sync-fichier.js"></script>
+<script src="../ironman-coach/assets/programme-data.js"></script>
+<script src="app.js"></script>
+<script src="../ironman-coach/assets/vendor/xlsx.full.min.js"></script>
+<script src="../ironman-coach/assets/export.js"></script>
+</body>
+</html>

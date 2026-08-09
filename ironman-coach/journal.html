@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Journal quotidien — Ironman Coach</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar"></nav>
+
+  <main class="content">
+    <h1>Journal quotidien</h1>
+    <p class="lead">30 secondes chaque soir. C'est la matière première de mon analyse — et de tes graphiques.</p>
+
+    <details class="aide">
+      <summary>ℹ️ Ce qui compte vraiment (si besoin)</summary>
+      <p>Rien n'est obligatoire : remplis ce que tu sais, laisse vide le reste.
+      Les trois champs qui m'aident le plus : <em>poids</em> (le matin à jeun, 3-4×/semaine
+      suffit), <em>rééduc pied</em> (la case), et le <em>ressenti libre</em> — raconte ce
+      que tu as mangé, ton énergie, ton pied, n'importe quoi d'utile. J'analyserai tout.</p>
+    </details>
+
+    <!-- Les 28 jours sont générés ici, groupés par semaine -->
+    <div id="jours"></div>
+  </main>
+</div>
+
+<script src="assets/sync-fichier.js"></script>
+<script src="assets/programme-data.js"></script>
+<script src="assets/main.js"></script>
+<script>
+/* ---------- Rendu du journal ----------
+   Un accordéon par semaine (celle en cours ouverte), une carte par jour.
+   Les champs viennent de JOURNAL_CHAMPS (programme-data.js) :
+   pour ajouter un champ au journal, on modifie LA LISTE, pas cette page. */
+"use strict";
+
+function champJournal(date, c) {
+  const cle = `journal.${date}.${c.cle}`;
+  if (c.type === "checkbox")
+    return `<div class="field" style="align-self:end"><span>&nbsp;</span>
+      <label style="display:flex;gap:.4rem;align-items:center;cursor:pointer">
+        <input type="checkbox" data-bind="${cle}" style="width:1.1rem;height:1.1rem;accent-color:var(--green)">
+        ${c.label}
+      </label></div>`;
+  if (c.type === "textarea")
+    return `<label class="field" style="grid-column:1/-1"><span>${c.label}</span>
+      <textarea data-bind="${cle}" placeholder="Repas, énergie, pied, humeur... format totalement libre"></textarea></label>`;
+  return `<label class="field"><span>${c.label}</span>
+      <input type="${c.type}" step="any" data-bind="${cle}"></label>`;
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const dates = datesDuBloc();
+  const aujourdhui = aujourdhuiISO();
+  const conteneur = document.getElementById("jours");
+
+  conteneur.innerHTML = BLOC.semaines.map((sem, wi) => {
+    const semDates = dates.slice(wi * 7, wi * 7 + 7);
+    const enCours = aujourdhui >= semDates[0] && aujourdhui <= semDates[6];
+    const ouverte = enCours || (aujourdhui < dates[0] && wi === 0);
+    return `
+      <details ${ouverte ? "open" : ""}>
+        <summary>Semaine ${sem.num} — ${sem.theme}</summary>
+        ${semDates.map(d => `
+          <div class="card" ${estAujourdhui(d) ? 'style="border-color:var(--accent);border-width:2px"' : ""}>
+            <h3>${dateJolie(d)} ${estAujourdhui(d) ? '<span class="badge muscu">aujourd\'hui</span>' : ""}</h3>
+            <div class="grid">
+              ${JOURNAL_CHAMPS.map(c => champJournal(d, c)).join("")}
+            </div>
+          </div>`).join("")}
+      </details>`;
+  }).join("");
+
+  bindAll(conteneur);
+
+  // Confort : si le bloc est en cours, on scrolle jusqu'à aujourd'hui
+  const carteAuj = conteneur.querySelector('[style*="--accent"]');
+  if (carteAuj) carteAuj.scrollIntoView({ block: "center" });
+});
+</script>
+</body>
+</html>

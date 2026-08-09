@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tableau de bord — Ironman Coach</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar"></nav>
+
+  <main class="content">
+    <h1>Tableau de bord</h1>
+    <p class="lead">Bloc 2 · Fondations + Course — du 3 au 30 août 2026</p>
+
+    <details class="aide">
+      <summary>ℹ️ L'objectif du bloc + comment marche la sauvegarde (si besoin)</summary>
+      <p id="objectif-bloc"></p>
+      <p>Tout ce que tu saisis est sauvegardé automatiquement dans ton navigateur
+      (« ✓ sauvegardé » apparaît en bas à droite). Le bouton « Exporter » en bas de
+      cette page crée deux fichiers : l'<strong>Excel</strong> (lisible, multi-feuilles,
+      TOUS les blocs depuis le début — parfait à envoyer à un pote) et le
+      <strong>.json</strong> (sauvegarde technique complète, à m'envoyer pour analyse
+      et à réimporter si besoin). Exporte au moins 1×/semaine. L'historique des blocs
+      passés est inclus automatiquement dans chaque export.</p>
+    </details>
+
+    <!-- Statistiques calculées en direct depuis tes données -->
+    <h2>Où tu en es</h2>
+    <div class="stats" id="stats"></div>
+
+    <!-- La semaine en cours : vue compacte, statut modifiable directement -->
+    <h2 id="titre-semaine">Cette semaine</h2>
+    <div id="cette-semaine"></div>
+
+    <!-- Graphiques -->
+    <h2>Ton évolution</h2>
+    <figure class="chart">
+      <div id="chart-poids"></div>
+      <figcaption>Poids (kg) — depuis ton journal quotidien</figcaption>
+    </figure>
+    <figure class="chart">
+      <div id="chart-pied-douleur"></div>
+      <figcaption>Douleur pied au réveil (0-10) — l'indicateur n°1 du mois : elle doit rester basse ou descendre</figcaption>
+    </figure>
+    <figure class="chart">
+      <div id="chart-seances"></div>
+      <figcaption>Séances faites par semaine (hors optionnelles ; vert = semaine complète)</figcaption>
+    </figure>
+    <figure class="chart">
+      <div id="chart-pied"></div>
+      <figcaption>Rééducation du pied — jours faits par semaine (objectif : 7/7)</figcaption>
+    </figure>
+
+    <!-- Sauvegarde -->
+    <h2>Sauvegarde &amp; export</h2>
+    <p>
+      <button class="btn vert" onclick="exporterExcel()">📊 Exporter en Excel (.xlsx)</button>
+      <button class="btn" onclick="exportJSON()">⬇ Sauvegarde .json (pour le coach)</button>
+      <label class="btn bleu" style="cursor:pointer">
+        ⬆ Importer une sauvegarde
+        <input type="file" accept=".json" style="display:none"
+               onchange="if(this.files[0]) importJSON(this.files[0])">
+      </label>
+    </p>
+  </main>
+</div>
+
+<script src="assets/sync-fichier.js"></script>
+<script src="assets/programme-data.js"></script>
+<script src="assets/main.js"></script>
+<script src="assets/charts.js"></script>
+<script src="assets/seance.js"></script>
+<script src="assets/vendor/xlsx.full.min.js"></script>
+<script src="assets/export.js"></script>
+<script>
+/* ---------- Logique propre au tableau de bord ----------
+   Tout est recalculé à chaque chargement ET à chaque modification
+   (événement "state:change" émis par main.js).
+   Les séances OPTIONNELLES (optionnel: true) sont du bonus :
+   exclues de l'assiduité et des graphiques de complétion. */
+"use strict";
+
+/* Séances attendues "à ce jour" : prorata jour par jour du menu
+   non-optionnel de chaque semaine (planning flexible). */
+function attenduesACeJour() {
+  const dates = datesDuBloc(), aujourdhui = aujourdhuiISO();
+  let total = 0;
+  BLOC.semaines.forEach((sem, wi) => {
+    const joursEcoulesSem = dates.slice(wi * 7, wi * 7 + 7).filter(d => d <= aujourdhui).length;
+    const nonOpt = sem.seances.filter(s => !s.optionnel).length;
+    total += nonOpt * joursEcoulesSem / 7;
+  });
+  return Math.round(total);
+}
+
+function calculerStats() {
+  const seances = toutesLesSeances();
+  const nonOpt = seances.filter(s => !s.optionnel);
+  const faites = nonOpt.filter(s => estFaite(s.id)).length;
+  const bonus = seances.filter(s => s.optionnel && estFaite(s.id)).length;
+  const pasPu = seances.filter(s => statutDe(s.id) === "pas-pu").length;
+  const attendues = attenduesACeJour();
+  const assiduite = attendues ? Math.min(100, Math.round(100 * faites / attendues)) : null;
+
+  const dates = datesDuBloc(), aujourdhui = aujourdhuiISO();
+  const joursPasses = dates.filter(d => d <= aujourdhui);
+  const piedFaits = joursPasses.filter(d => state[`journal.${d}.pied`]).length;
+
+  const el = document.getElementById("stats");
+  el.innerHTML = `
+    <div class="stat ${assiduite === null || assiduite >= 80 ? "ok" : "warn"}">
+      <div class="val">${assiduite === null ? "—" : assiduite + " %"}</div>
+      <div class="lab">Assiduité<br>(faites vs attendues à ce jour)</div>
+    </div>
+    <div class="stat"><div class="val">${faites}/${nonOpt.length}</div><div class="lab">Séances du bloc${bonus ? `<br>+ ${bonus} optionnelle${bonus > 1 ? "s" : ""} 🎁` : ""}</div></div>
+    <div class="stat ${pasPu === 0 ? "ok" : "warn"}"><div class="val">${pasPu}</div><div class="lab">Empêchements<br>(« pas pu »)</div></div>
+    <div class="stat ${joursPasses.length === 0 || piedFaits / Math.max(joursPasses.length, 1) >= 0.8 ? "ok" : "warn"}">
+      <div class="val">${piedFaits}/${joursPasses.length}</div><div class="lab">Rééduc pied (jours)</div>
+    </div>`;
+}
+
+/* Vue compacte de la semaine en cours : chaque séance avec son statut,
+   modifiable ici même. Le détail complet reste sur la page Programme. */
+function afficherSemaine() {
+  const dates = datesDuBloc(), aujourdhui = aujourdhuiISO();
+  const el = document.getElementById("cette-semaine");
+  const titre = document.getElementById("titre-semaine");
+
+  if (aujourdhui < dates[0]) {
+    titre.textContent = "Avant le départ";
+    el.innerHTML = `<div class="card">Le bloc démarre le <strong>lundi 3 août</strong>.
+      D'ici là : rééduc pied quotidienne, et la section course à pied du
+      <a href="guide.html">Guide du coach</a> vaut la lecture avant ta première sortie en Clifton.</div>`;
+    return;
+  }
+  if (aujourdhui > dates[27]) {
+    titre.textContent = "Bloc terminé";
+    el.innerHTML = `<div class="card">Bloc terminé 🎉 — remplis la page <a href="tests.html">Tests</a>,
+      exporte tes données et envoie-moi le fichier pour le Bloc 3.</div>`;
+    return;
+  }
+
+  const wi = Math.floor(dates.indexOf(aujourdhui) / 7);
+  const sem = BLOC.semaines[wi];
+  titre.textContent = `Cette semaine — Semaine ${sem.num} : ${sem.theme}`;
+
+  const restantes = sem.seances.filter(s => !s.optionnel && !estFaite(s.id) && statutDe(s.id) !== "pas-pu").length;
+  el.innerHTML = `
+    <p style="color:var(--text-2)">${restantes === 0
+      ? "Menu de la semaine terminé 💪 — tout le reste est du bonus."
+      : `Encore <strong>${restantes}</strong> séance${restantes > 1 ? "s" : ""} au menu — tu choisis quoi faire aujourd'hui.`}
+      <a href="programme.html">Détails des séances →</a></p>` +
+    sem.seances.map(s => {
+      const statut = statutDe(s.id);
+      const classe = estFaite(s.id) ? "faite" : (statut === "pas-pu" ? "paspu" : "");
+      return `
+      <div class="mini-seance ${classe}" id="mini-${s.id}">
+        <span class="badge ${s.type}">${TYPE_LABELS[s.type] || s.type}</span>
+        <span class="titre">${s.titre}${s.optionnel ? ' <span class="badge repos">opt.</span>' : ""}</span>
+        <select data-bind="seance.${s.id}.statut">
+          ${STATUTS.map(o => `<option value="${o.val}" ${o.val === statut ? "selected" : ""}>${o.label}</option>`).join("")}
+        </select>
+      </div>`;
+    }).join("");
+  bindAll(el);
+}
+
+/* Couleur des mini-cartes quand un statut change ici ou ailleurs */
+document.addEventListener("state:change", e => {
+  const m = e.detail.cle.match(/^seance\.(.+)\.statut$/);
+  if (!m) return;
+  const mini = document.getElementById(`mini-${m[1]}`);
+  if (mini) {
+    mini.classList.toggle("faite", estFaite(m[1]));
+    mini.classList.toggle("paspu", statutDe(m[1]) === "pas-pu");
+  }
+});
+
+function dessinerGraphiques() {
+  const dates = datesDuBloc();
+  // Poids : un point par jour du bloc (ignorés si vides)
+  ligneSVG("#chart-poids", dates.map(d => ({
+    x: d.slice(8, 10) + "/" + d.slice(5, 7),
+    y: state[`journal.${d}.poids`] || null,
+  })), { unite: "kg", decimales: 1 });
+
+  // Douleur pied au réveil : LE capteur du mois de la reprise course
+  ligneSVG("#chart-pied-douleur", dates.map(d => {
+    const v = state[`journal.${d}.pied_douleur`];
+    return { x: d.slice(8, 10) + "/" + d.slice(5, 7), y: (v === undefined || v === "") ? null : v };
+  }), { unite: "/10", decimales: 0 });
+
+  // Séances non-optionnelles faites (ou adaptées) par semaine
+  const seances = toutesLesSeances();
+  barresSVG("#chart-seances", BLOC.semaines.map(sem => ({
+    x: "Sem. " + sem.num,
+    y: seances.filter(s => s.semaine === sem.num && !s.optionnel && estFaite(s.id)).length,
+    max: sem.seances.filter(s => !s.optionnel).length,
+  })));
+
+  // Rééduc pied par semaine
+  barresSVG("#chart-pied", BLOC.semaines.map((sem, wi) => ({
+    x: "Sem. " + sem.num,
+    y: dates.slice(wi * 7, wi * 7 + 7).filter(d => state[`journal.${d}.pied`]).length,
+    max: 7,
+  })));
+}
+
+function rafraichir() { calculerStats(); dessinerGraphiques(); }
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("objectif-bloc").textContent = BLOC.objectifBloc;
+  afficherSemaine();
+  rafraichir();
+});
+document.addEventListener("state:change", rafraichir);
+</script>
+</body>
+</html>

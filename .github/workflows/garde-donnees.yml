@@ -1,0 +1,62 @@
+# Robot de garde des données Ironman.
+# Toutes les 6 h : relit le blob jsonblob (ce qui repousse son expiration 24 h),
+# archive une copie dans le repo, et si le blob a expiré, le RECRÉE depuis la
+# dernière copie puis met à jour blob-id.txt (que les pages relisent).
+# Les commits réguliers gardent aussi ce cron actif (GitHub coupe les crons
+# des repos inactifs 60 jours).
+name: Garde des données
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  garder:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lire le blob, archiver, recréer si expiré
+        run: |
+          set -e
+          ID=$(tr -d ' \n' < blob-id.txt)
+          mkdir -p sauvegardes
+          CODE=$(curl -s -o /tmp/donnees.json -w '%{http_code}' "https://jsonblob.com/api/jsonBlob/$ID" || echo 000)
+          echo "Blob $ID -> HTTP $CODE"
+          if [ "$CODE" = "200" ]; then
+            cp /tmp/donnees.json sauvegardes/derniere.json
+          elif [ "$CODE" = "404" ]; then
+            echo "Blob expiré : recréation depuis sauvegardes/derniere.json"
+            REPONSE=$(curl -s -i -X POST "https://jsonblob.com/api/jsonBlob" \
+              -H "Content-Type: application/json" \
+              --data-binary @sauvegardes/derniere.json)
+            NOUVEAU=$(printf '%s' "$REPONSE" | grep -i '^location:' | sed 's/.*jsonBlob\///' | tr -d ' \r\n')
+            if [ -n "$NOUVEAU" ]; then
+              echo "$NOUVEAU" > blob-id.txt
+              echo "Nouveau blob : $NOUVEAU"
+            else
+              echo "Échec de la recréation" >&2; exit 1
+            fi
+          else
+            echo "jsonblob injoignable (HTTP $CODE), on réessaiera dans 6 h" >&2; exit 0
+          fi
+          date -u +"%Y-%m-%dT%H:%M:%SZ" > sauvegardes/derniere-verification.txt
+
+      - name: Committer si les données ont changé (ou 1 fois tous les 5 jours)
+        run: |
+          git config user.name "garde-donnees"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A sauvegardes blob-id.txt
+          DONNEES_CHANGEES=$(git diff --cached --name-only | grep -v derniere-verification || true)
+          DERNIER_COMMIT=$(git log -1 --format=%ct)
+          AGE=$(( $(date +%s) - DERNIER_COMMIT ))
+          if [ -n "$DONNEES_CHANGEES" ] || [ "$AGE" -gt 432000 ]; then
+            git commit -m "sauvegarde automatique des données"
+            git push
+          else
+            echo "Rien de neuf, pas de commit."
+          fi
