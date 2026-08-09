@@ -1,7 +1,9 @@
 # Ironman Coach — Samy · Bloc 2
 
-Site de suivi d'entraînement 100 % local : HTML/CSS/JS vanilla, zéro dépendance,
-zéro build. **Double-clique sur `index.html`** — ça marche hors-ligne, en `file://`.
+Site de suivi d'entraînement : HTML/CSS/JS vanilla, zéro dépendance, zéro build.
+**En ligne : https://samyoffer.github.io/ironman/** (GitHub Pages, repo
+`SamyOffer/ironman` = ce dossier). Marche aussi en local en double-cliquant
+`index.html` — mêmes données, synchronisées via le cloud.
 
 ## Structure
 
@@ -45,17 +47,18 @@ Concrètement :
 
 ## Sauvegarde des données
 
-- **Sur disque, dans un vrai fichier** : `assets/sync-fichier.js` (chargé en
-  premier sur chaque page, il définit `STORE_KEY`) pousse chaque modification
-  vers un petit serveur local (`~/Library/Application Support/ironman-sauvegarde/
-  serveur-sauvegarde.py`, port 8123) qui écrit `donnees-ironman.json` — visible
-  via le lien `SPORT/donnees-ironman.json`. Le serveur est lancé au démarrage du
-  Mac par le LaunchAgent `com.samy.ironman-sauvegarde` ; s'il est éteint, les
-  pages affichent un bandeau rouge (relance : « Démarrer la sauvegarde.command »
-  dans SPORT). Une copie par jour est gardée dans `sauvegarde/historique/`.
-  Au chargement, le fichier remplit `localStorage` AVANT les autres scripts :
-  le fichier est la source de vérité, le navigateur n'est qu'une copie de travail
-  (le plus récent des deux gagne, horodatage `_maj`).
+- **Dans le cloud** : `assets/sync-fichier.js` (chargé en premier sur chaque
+  page, il définit `STORE_KEY`) pousse chaque modification vers un document
+  JSON en ligne (jsonblob.com, gratuit, sans compte — ID dans `blob-id.txt` à
+  la racine du repo). À l'ouverture, la page compare cloud et copie locale :
+  le plus récent gagne (horodatage `_maj`) et la page se recharge si le cloud
+  avait plus frais. Résultat : mêmes données sur Safari, Arc, Chrome, téléphone...
+  Hors-ligne, un bandeau s'affiche et le `localStorage` prend le relais jusqu'au
+  retour du réseau.
+- **Robot de garde** (`.github/workflows/garde-donnees.yml`) : toutes les 6 h,
+  GitHub relit le blob (ce qui repousse son expiration de 24 h), archive une
+  copie dans `sauvegardes/derniere.json`, et si le blob a expiré, le recrée
+  depuis la copie puis met à jour `blob-id.txt`.
 - **Automatique** : tout élément portant `data-bind="une.cle"` est lu/écrit dans
   `localStorage` à chaque modification (indicateur « ✓ sauvegardé » en bas à droite),
   puis `syncVersFichier()` pousse le tout dans le fichier.
@@ -71,9 +74,10 @@ Concrètement :
   Quand un bloc se termine, son catalogue (id → titre) est ajouté au REGISTRE
   d'export.js pour que l'Excel reste lisible à vie.
 
-Grâce au fichier disque, les données survivent au changement de navigateur
-(Safari, Arc, Chrome...) et aux nettoyages de `localStorage`. Seule condition :
-le serveur de sauvegarde doit tourner (bandeau rouge sinon).
+Grâce au cloud, les données survivent au changement de navigateur et aux
+nettoyages de `localStorage`, et sont copiées toutes les 6 h dans le repo
+(`sauvegardes/derniere.json` + historique git). Note : le blob est public
+(lisible/modifiable par qui a l'URL) — assumé, aucune donnée sensible.
 
 ## Planning flexible & statuts
 

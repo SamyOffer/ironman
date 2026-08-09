@@ -10,3 +10,4 @@
 !/.gitignore
 .DS_Store
 firebase-debug.log
+.gstack/
