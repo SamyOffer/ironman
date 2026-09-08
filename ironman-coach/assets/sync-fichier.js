@@ -46,16 +46,69 @@ function syncLireLocal() {
   return paquet;
 }
 
-function syncTaille(paquet) {
-  return Object.entries(paquet)
-    .filter(([cle]) => cle.startsWith(SYNC_PREFIXE))
-    .reduce((n, [, val]) => n + JSON.stringify(val || {}).length, 0);
+/* -- RÈGLE D'OR anti-écrasement : on ne POUSSE jamais vers le cloud avant
+      d'avoir réussi à le LIRE et à le fusionner dans le localStorage.
+      Sans ça, un navigateur vide (ex. téléphone dont la lecture a échoué)
+      peut remplacer tout le cloud par presque rien — c'est arrivé. -- */
+let syncPret = false;      // un pull réussi a été fusionné -> pousser est autorisé
+let syncRetryTimer = null;
+
+/* -- Fusion du cloud dans le localStorage, clé par clé (union).
+      En cas de conflit sur une même clé, le camp au _maj le plus récent gagne.
+      Renvoie ce qui reste à faire de chaque côté. -- */
+function syncFusionnerCloud(cloud) {
+  const majCloud = +cloud._maj || 0;
+  const majLocal = +(localStorage.getItem(SYNC_CLE_MAJ) || 0);
+  const localPrioritaire = majLocal > majCloud;
+  const local = syncLireLocal();
+  const blocs = new Set([...Object.keys(local), ...Object.keys(cloud).filter(c => c.startsWith(SYNC_PREFIXE))]);
+  let localChange = false, cloudIncomplet = false;
+  blocs.forEach(b => {
+    const c = cloud[b] || {}, l = local[b] || {};
+    const fusion = localPrioritaire ? { ...c, ...l } : { ...l, ...c };
+    if (JSON.stringify(fusion) !== JSON.stringify(l)) { localStorage.setItem(b, JSON.stringify(fusion)); localChange = true; }
+    if (JSON.stringify(fusion) !== JSON.stringify(c)) cloudIncomplet = true;
+  });
+  localStorage.setItem(SYNC_CLE_MAJ, String(Math.max(majCloud, majLocal)));
+  return { localChange, cloudIncomplet };
+}
+
+/* -- Lecture du cloud + fusion. Renvoie true si le pull a réussi. -- */
+async function syncTirer() {
+  let cloud;
+  try {
+    const r = await fetch(SYNC_URL, { cache: "no-store" });
+    if (!r.ok) return false;
+    const enveloppe = await r.json();                 // null si base vide
+    cloud = (enveloppe && typeof enveloppe.d === "string") ? JSON.parse(enveloppe.d) : {};
+  } catch { return false; }
+  if (!cloud || typeof cloud !== "object") cloud = {};
+  const { localChange, cloudIncomplet } = syncFusionnerCloud(cloud);
+  syncPret = true;
+  syncStatut(true);
+  if (cloudIncomplet) {
+    await syncEnvoyer();                              // ce navigateur avait des choses en plus
+  }
+  if (localChange && !syncEnAttente) location.reload(); /* une seule fois : au prochain
+    passage la fusion ne change plus rien, donc pas de boucle */
+  return true;
+}
+
+function syncReessayer() {
+  clearTimeout(syncRetryTimer);
+  syncRetryTimer = setTimeout(() => {
+    if (!syncPret) syncTirer().then(ok => { if (!ok) { syncStatut(false); syncReessayer(); } });
+  }, 15000);
 }
 
 /* -- Envoi vers le cloud (PUT = remplace le document entier). -- */
 function syncEnvoyer(options = {}) {
   clearTimeout(syncTimer);
   syncEnAttente = false;
+  if (!syncPret) {
+    // Pas encore lu le cloud : on tire d'abord (la fusion re-poussera nos saisies).
+    return syncTirer().then(ok => { if (!ok) { syncStatut(false); syncReessayer(); } });
+  }
   const paquet = syncLireLocal();
   paquet._maj = Date.now();
   localStorage.setItem(SYNC_CLE_MAJ, String(paquet._maj));
@@ -77,9 +130,10 @@ function syncVersFichier() {
   syncTimer = setTimeout(() => syncEnvoyer(), 300);
 }
 
-/* -- Fermeture / bascule d'onglet : on pousse ce qui attend encore. -- */
+/* -- Fermeture / bascule d'onglet : on pousse ce qui attend encore
+      (seulement si le pull initial a réussi — règle d'or). -- */
 window.addEventListener("pagehide", () => {
-  if (syncEnAttente) syncEnvoyer({ keepalive: true });
+  if (syncEnAttente && syncPret) syncEnvoyer({ keepalive: true });
 });
 
 /* -- Bandeau discret si le cloud est injoignable : le mode hors-ligne
@@ -110,41 +164,10 @@ document.addEventListener("DOMContentLoaded", syncMajBandeau);
 /* ============================================================
    CHARGEMENT INITIAL
    La page s'affiche tout de suite avec la copie localStorage, puis
-   on compare avec le cloud (~200 ms) : si le cloud est plus récent
-   (autre navigateur/appareil entre-temps), on écrase la copie locale
-   et on recharge la page une fois pour afficher les bonnes données.
+   on lit le cloud (~200 ms) et on FUSIONNE clé par clé : chaque camp
+   apporte ce que l'autre n'a pas, les conflits vont au plus récent.
+   Si l'affichage doit changer, la page se recharge une fois.
+   Si le cloud est injoignable : bandeau + nouvel essai toutes les 15 s,
+   et AUCUN envoi tant qu'une lecture n'a pas réussi.
    ============================================================ */
-(async function () {
-  let cloud = null;
-  try {
-    const r = await fetch(SYNC_URL, { cache: "no-store" });
-    if (r.ok) {
-      const enveloppe = await r.json();           // null si base vide
-      if (enveloppe && typeof enveloppe.d === "string") cloud = JSON.parse(enveloppe.d);
-      else cloud = {};                            // base vide : rien à récupérer
-    }
-  } catch { /* réseau coupé */ }
-  if (!cloud || typeof cloud !== "object") { syncStatut(false); return; }
-  syncStatut(true);
-
-  const majCloud = +cloud._maj || 0;
-  const majLocal = +(localStorage.getItem(SYNC_CLE_MAJ) || 0);
-  /* Le plus récent gagne ; à égalité (premières utilisations), celui qui a le plus de données */
-  const cloudGagne = majCloud !== majLocal
-    ? majCloud > majLocal
-    : syncTaille(cloud) >= syncTaille(syncLireLocal());
-
-  if (!cloudGagne) {
-    /* Ce navigateur a plus récent (saisie hors-ligne, ou cloud restauré
-       depuis une vieille copie) : on remet le cloud à niveau. */
-    syncEnvoyer();
-    return;
-  }
-  if (majCloud === majLocal || syncEnAttente) return; /* déjà à jour, ou saisie en cours */
-
-  Object.entries(cloud).forEach(([cle, val]) => {
-    if (cle.startsWith(SYNC_PREFIXE)) localStorage.setItem(cle, JSON.stringify(val || {}));
-  });
-  localStorage.setItem(SYNC_CLE_MAJ, String(majCloud));
-  location.reload(); /* une seule fois : au prochain passage, majCloud === majLocal */
-})();
+syncTirer().then(ok => { if (!ok) { syncStatut(false); syncReessayer(); } });
