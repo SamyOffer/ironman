@@ -1,17 +1,22 @@
 /* ============================================================
    SYNC-FICHIER — sauvegarde dans le CLOUD (partagé simple + coach)
 
-   La source de vérité est un document JSON en ligne (jsonblob.com,
-   gratuit, sans compte). Chaque modification y est poussée ; chaque
-   ouverture de page le relit. Résultat : les données suivent, peu
-   importe le navigateur (Safari, Arc, Chrome...) ou l'appareil.
+   La source de vérité est une base Firebase Realtime Database
+   (projet Google "ironman-samy-2028", gratuite, permanente).
+   Chaque modification y est poussée ; chaque ouverture de page la
+   relit. Résultat : les données suivent, peu importe le navigateur
+   (Safari, Arc, Chrome...) ou l'appareil.
    Le localStorage sert de copie de travail et de mode hors-ligne.
 
-   Filets de sécurité (voir .github/workflows/garde-donnees.yml) :
-   un robot GitHub relit le blob toutes les 6 h (ce qui le maintient
-   en vie), archive une copie dans le repo, et le recrée depuis la
-   copie s'il a expiré — en mettant à jour blob-id.txt, que les pages
-   hébergées relisent à chaque ouverture.
+   Historique : jsonblob.com (v1 cloud) a fermé les créations en
+   août 2026 — remplacé par Firebase le 8 sept. 2026.
+
+   Format stocké côté Firebase : { d: "<paquet JSON en chaîne>", maj: <ts> }.
+   Le paquet est une CHAÎNE car nos clés contiennent des points
+   ("journal.2026-08-07.poids"), interdits dans les clés Firebase.
+
+   Filet de sécurité : le robot GitHub (.github/workflows/
+   garde-donnees.yml) archive une copie dans le repo toutes les 6 h.
 
    À charger AVANT tous les autres scripts : il fournit STORE_KEY.
    ============================================================ */
@@ -22,13 +27,10 @@
    Changer de bloc = nouvelle clé (v3...), les anciens blocs restent dans le cloud. */
 const STORE_KEY = "ironman-samy-bloc2";
 
-/* Blob par défaut — utilisé en file:// ; en ligne, blob-id.txt fait foi. */
-const SYNC_BLOB_DEFAUT = "019fe3d9-626f-74f2-866b-6fea4589b942";
-const SYNC_BASE = "https://jsonblob.com/api/jsonBlob/";
+const SYNC_URL = "https://ironman-samy-2028-default-rtdb.europe-west1.firebasedatabase.app/ironman.json";
 const SYNC_PREFIXE = "ironman-samy-";     // toutes les clés de blocs, passés et courant
 const SYNC_CLE_MAJ = "ironman-sync-maj";  // horodatage de la dernière écriture locale
 
-let SYNC_URL = SYNC_BASE + SYNC_BLOB_DEFAUT;
 let syncEnLigne = true;
 let syncTimer = null;
 let syncEnAttente = false;
@@ -60,7 +62,7 @@ function syncEnvoyer(options = {}) {
   return fetch(SYNC_URL, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(paquet),
+    body: JSON.stringify({ d: JSON.stringify(paquet), maj: paquet._maj }),
     keepalive: !!options.keepalive,   // survit à la fermeture de la page
   })
     .then(r => syncStatut(r.ok))
@@ -113,23 +115,14 @@ document.addEventListener("DOMContentLoaded", syncMajBandeau);
    et on recharge la page une fois pour afficher les bonnes données.
    ============================================================ */
 (async function () {
-  /* En ligne : blob-id.txt (à la racine du site) fait foi — c'est lui que
-     le robot GitHub met à jour s'il a dû recréer le blob. */
-  if (location.protocol === "http:" || location.protocol === "https:") {
-    try {
-      const r = await fetch("../blob-id.txt", { cache: "no-store" });
-      if (r.ok) {
-        const id = (await r.text()).trim();
-        if (/^[0-9a-f-]{20,}$/i.test(id)) SYNC_URL = SYNC_BASE + id;
-      }
-    } catch { /* pas de blob-id.txt : blob par défaut */ }
-  }
-
   let cloud = null;
   try {
     const r = await fetch(SYNC_URL, { cache: "no-store" });
-    if (r.ok) cloud = await r.json();
-    else if (r.status === 404) { syncStatut(true); return; } /* blob expiré : le robot GitHub le recréera ; en attendant, mode local */
+    if (r.ok) {
+      const enveloppe = await r.json();           // null si base vide
+      if (enveloppe && typeof enveloppe.d === "string") cloud = JSON.parse(enveloppe.d);
+      else cloud = {};                            // base vide : rien à récupérer
+    }
   } catch { /* réseau coupé */ }
   if (!cloud || typeof cloud !== "object") { syncStatut(false); return; }
   syncStatut(true);
@@ -142,7 +135,7 @@ document.addEventListener("DOMContentLoaded", syncMajBandeau);
     : syncTaille(cloud) >= syncTaille(syncLireLocal());
 
   if (!cloudGagne) {
-    /* Ce navigateur a plus récent (saisie hors-ligne, ou cloud recréé
+    /* Ce navigateur a plus récent (saisie hors-ligne, ou cloud restauré
        depuis une vieille copie) : on remet le cloud à niveau. */
     syncEnvoyer();
     return;

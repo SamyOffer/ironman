@@ -48,17 +48,18 @@ Concrètement :
 ## Sauvegarde des données
 
 - **Dans le cloud** : `assets/sync-fichier.js` (chargé en premier sur chaque
-  page, il définit `STORE_KEY`) pousse chaque modification vers un document
-  JSON en ligne (jsonblob.com, gratuit, sans compte — ID dans `blob-id.txt` à
-  la racine du repo). À l'ouverture, la page compare cloud et copie locale :
-  le plus récent gagne (horodatage `_maj`) et la page se recharge si le cloud
-  avait plus frais. Résultat : mêmes données sur Safari, Arc, Chrome, téléphone...
-  Hors-ligne, un bandeau s'affiche et le `localStorage` prend le relais jusqu'au
-  retour du réseau.
-- **Robot de garde** (`.github/workflows/garde-donnees.yml`) : toutes les 6 h,
-  GitHub relit le blob (ce qui repousse son expiration de 24 h), archive une
-  copie dans `sauvegardes/derniere.json`, et si le blob a expiré, le recrée
-  depuis la copie puis met à jour `blob-id.txt`.
+  page, il définit `STORE_KEY`) pousse chaque modification vers une base
+  Firebase Realtime Database (projet Google `ironman-samy-2028`, gratuit,
+  permanent — nœud `/ironman`, données stockées en chaîne JSON car nos clés
+  contiennent des points). À l'ouverture, la page compare cloud et copie
+  locale : le plus récent gagne (horodatage `_maj`) et la page se recharge si
+  le cloud avait plus frais. Résultat : mêmes données sur Safari, Arc, Chrome,
+  téléphone... Hors-ligne, un bandeau s'affiche et le `localStorage` prend le
+  relais jusqu'au retour du réseau.
+  (Historique : jsonblob.com, utilisé en août 2026, a fermé les créations
+  anonymes — remplacé par Firebase le 8 sept. 2026.)
+- **Robot d'archivage** (`.github/workflows/garde-donnees.yml`) : toutes les
+  6 h, GitHub copie la base dans `sauvegardes/derniere.json` (+ historique git).
 - **Automatique** : tout élément portant `data-bind="une.cle"` est lu/écrit dans
   `localStorage` à chaque modification (indicateur « ✓ sauvegardé » en bas à droite),
   puis `syncVersFichier()` pousse le tout dans le fichier.
@@ -76,8 +77,9 @@ Concrètement :
 
 Grâce au cloud, les données survivent au changement de navigateur et aux
 nettoyages de `localStorage`, et sont copiées toutes les 6 h dans le repo
-(`sauvegardes/derniere.json` + historique git). Note : le blob est public
-(lisible/modifiable par qui a l'URL) — assumé, aucune donnée sensible.
+(`sauvegardes/derniere.json` + historique git). Note : la base est publique
+(règles ouvertes, lisible/modifiable par qui a l'URL) — assumé, aucune donnée
+sensible.
 
 ## Planning flexible & statuts
 

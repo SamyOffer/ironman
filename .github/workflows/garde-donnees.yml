@@ -1,9 +1,9 @@
-# Robot de garde des données Ironman.
-# Toutes les 6 h : relit le blob jsonblob (ce qui repousse son expiration 24 h),
-# archive une copie dans le repo, et si le blob a expiré, le RECRÉE depuis la
-# dernière copie puis met à jour blob-id.txt (que les pages relisent).
-# Les commits réguliers gardent aussi ce cron actif (GitHub coupe les crons
-# des repos inactifs 60 jours).
+# Robot d'archivage des données Ironman.
+# Toutes les 6 h : lit la base Firebase et archive une copie dans le repo
+# (sauvegardes/derniere.json + historique git). Firebase n'expire pas —
+# c'est une pure sauvegarde de secours.
+# Un commit est forcé au moins tous les 5 jours pour que GitHub ne coupe
+# pas ce cron (règle des repos inactifs 60 jours).
 name: Garde des données
 
 on:
@@ -20,29 +20,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Lire le blob, archiver, recréer si expiré
+      - name: Lire la base Firebase et archiver
         run: |
           set -e
-          ID=$(tr -d ' \n' < blob-id.txt)
+          URL="https://ironman-samy-2028-default-rtdb.europe-west1.firebasedatabase.app/ironman.json"
+          CODE=$(curl -s -o /tmp/enveloppe.json -w '%{http_code}' "$URL" || echo 000)
+          echo "Firebase -> HTTP $CODE"
+          if [ "$CODE" != "200" ]; then
+            echo "Base injoignable, on réessaiera dans 6 h" >&2; exit 0
+          fi
           mkdir -p sauvegardes
-          CODE=$(curl -s -o /tmp/donnees.json -w '%{http_code}' "https://jsonblob.com/api/jsonBlob/$ID" || echo 000)
-          echo "Blob $ID -> HTTP $CODE"
-          if [ "$CODE" = "200" ]; then
-            cp /tmp/donnees.json sauvegardes/derniere.json
-          elif [ "$CODE" = "404" ]; then
-            echo "Blob expiré : recréation depuis sauvegardes/derniere.json"
-            REPONSE=$(curl -s -i -X POST "https://jsonblob.com/api/jsonBlob" \
-              -H "Content-Type: application/json" \
-              --data-binary @sauvegardes/derniere.json)
-            NOUVEAU=$(printf '%s' "$REPONSE" | grep -i '^location:' | sed 's/.*jsonBlob\///' | tr -d ' \r\n')
-            if [ -n "$NOUVEAU" ]; then
-              echo "$NOUVEAU" > blob-id.txt
-              echo "Nouveau blob : $NOUVEAU"
-            else
-              echo "Échec de la recréation" >&2; exit 1
-            fi
+          if [ "$(cat /tmp/enveloppe.json)" = "null" ]; then
+            echo "Base vide : rien à archiver."
           else
-            echo "jsonblob injoignable (HTTP $CODE), on réessaiera dans 6 h" >&2; exit 0
+            jq -r '.d' /tmp/enveloppe.json > sauvegardes/derniere.json
           fi
           date -u +"%Y-%m-%dT%H:%M:%SZ" > sauvegardes/derniere-verification.txt
 
@@ -50,7 +41,7 @@ jobs:
         run: |
           git config user.name "garde-donnees"
           git config user.email "actions@users.noreply.github.com"
-          git add -A sauvegardes blob-id.txt
+          git add -A sauvegardes
           DONNEES_CHANGEES=$(git diff --cached --name-only | grep -v derniere-verification || true)
           DERNIER_COMMIT=$(git log -1 --format=%ct)
           AGE=$(( $(date +%s) - DERNIER_COMMIT ))
