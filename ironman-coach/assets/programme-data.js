@@ -54,10 +54,10 @@ const MUSCU = {
       "4. Tirage devant haltères (upright row prise large) — 3 × 12-15",
       "5. Curl incliné haltères — 3 × 10-15",
       "6. Extension triceps corde — 3 × 12-15",
-      "7. Crunch poulie — 3 × 12-15",
+      "7. Roulette abdominale à genoux — 3 × 8-12 (trop dur ? planche bassin enroulé 3 × 30-45 s)",
       "Puis 15-20 min de vélo Z2 souple (120-135 bpm) sur un vélo de la salle — la première chose à sauter si tu es pressé",
     ],
-    pourquoi: "Ton ancien Upper commençait par le développé couché et finissait par 3 séries d'élévations latérales. Pour un « V », c'est l'inverse : les deltoïdes latéraux et les dorsaux font la largeur, le haut des pecs et les bras remplissent. Un muscle prioritaire se travaille frais, en début de séance (Lucas Gouiffes), et ce qui le fait grandir, c'est le nombre de séries dures par semaine, pas les kilos sur la barre (Pelland 2025).",
+    pourquoi: "Ton ancien Upper commençait par le développé couché et finissait par 3 séries d'élévations latérales. Pour un « V », c'est l'inverse : les deltoïdes latéraux et les dorsaux font la largeur, le haut des pecs et les bras remplissent. Un muscle prioritaire se travaille frais, en début de séance (Lucas Gouiffes), et ce qui le fait grandir, c'est le nombre de séries dures par semaine, pas les kilos sur la barre (Pelland 2025). Le crunch poulie a été remplacé par la roulette : le crunch entraîne la flexion (et le psoas, un fléchisseur de hanche) alors que ce qui te manque, c'est la force d'EMPÊCHER le bas du dos de se cambrer — c'est ça qui sert quand tu cours.",
     hint: "Ex : charges, reps en réserve, séries ajoutées...",
   },
   lower: {
@@ -71,10 +71,10 @@ const MUSCU = {
       "4. Leg curl allongé — 3 × 10-15",
       "5. Fentes bulgares haltères — 2 × 8-10 par côté (à sauter si tu manques de temps)",
       "6. Mollets Rathleff — 3 × 12 unilatéral, SERVIETTE ROULÉE SOUS LES ORTEILS, montée 2 s / pause 2 s / descente 3 s",
-      "7. Gainage planche — 3 × 30-60 s",
+      "7. Hip thrust — 3 × 10-12, pause 2 s en haut, côtes basses, bassin enroulé au verrouillage",
       "Jamais la veille d'une course : mardi et dimanche restent libres",
     ],
-    pourquoi: "En sèche avec deux vélos et deux courses par semaine, les jambes reçoivent déjà beaucoup : un Lower dur suffit à les entretenir, et deux Upper libèrent la place pour les épaules et le dos. Le protocole Rathleff (serviette sous les orteils) reste le traitement le mieux validé de la fasciite ; tant que tu cours, il compte double.",
+    pourquoi: "En sèche avec deux vélos et deux courses par semaine, les jambes reçoivent déjà beaucoup : un Lower dur suffit à les entretenir, et deux Upper libèrent la place pour les épaules et le dos. Le protocole Rathleff (serviette sous les orteils) reste le traitement le mieux validé de la fasciite ; tant que tu cours, il compte double. Le gainage a laissé la place au hip thrust : c'est le meilleur exercice pour les fessiers en fin d'amplitude, et bien fait (côtes basses, bassin enroulé en haut) c'est une bascule postérieure entraînée sous charge — exactement le mouvement qui te manque. Le gainage, lui, est passé dans ta routine quotidienne sous forme de dead bug, qui le vaut largement.",
     hint: "Ex : charges, douleur pied pendant les mollets, fatigue 0-10...",
   },
   upperB: {
@@ -89,7 +89,7 @@ const MUSCU = {
       "5. Curl marteau — 3 × 10-12",
       "6. Extension nuque haltère — 3 × 10-12",
       "7. Face pull — 2 × 15-20",
-      "8. Relevés de genoux suspendu — 3 × 10-15",
+      "8. Relevés de genoux suspendu — 3 × 10-15, en ENROULANT le bassin vers toi en haut (pas juste lever les genoux)",
       "Puis 15-20 min de vélo Z2 souple sur un vélo de la salle",
     ],
     pourquoi: "Par semaine, ça donne : deltoïdes latéraux 11 séries, dorsaux 7, rowing 3, haut des pecs 6, biceps 6, triceps 6, arrière d'épaule 2, abdos 9. C'est la répartition d'un physique, pas d'un programme de force. Progression : d'abord les reps dans la fourchette, puis la charge, et quand un muscle prioritaire stagne 3 semaines, +1 série dessus.",
@@ -180,6 +180,7 @@ function _course(sem, id, jour, format, n) {
       continu ? `${format} — tu peux parler en courant` : `${format} — tu peux parler en courant`,
       "5 min de marche pour finir",
       "Clifton + semelles, petits pas rapides (~170/min), atterris sous ton corps",
+      "Côtes basses, bassin sous les côtes : si le bas du dos tire (comme le 13 août), raccourcis les segments",
       "Douleur pied > 3/10 pendant → stop, tu rentres en marchant, séance en « adapté » avec la raison",
       "Douleur > 2/10 le lendemain → tu répètes ce format la semaine prochaine au lieu de monter",
     ],
@@ -289,7 +290,8 @@ const BLOC = {
     "Nutrition : sèche lente à 2 100 kcal et 150 g de protéines, ajustée toutes les 2 semaines sur la " +
     "moyenne de poids 7 jours (cible : −0,3 à −0,45 kg/semaine), semaines 6 et 12 à maintenance. " +
     "Départ 66 kg / 18,9 % (11 sept.) ; cible 20 décembre : ~61 kg, abdos hauts visibles, taille −6 cm. " +
-    "Règle absolue : sommeil ≥ 7 h 30, sinon la sèche mange du muscle.",
+    "Règle absolue : sommeil ≥ 7 h 30, sinon la sèche mange du muscle. " +
+    "Chaque jour, 5 min de routine posture collées à la rééduc pied.",
   semaines: PLAN.map(_semaine),
 };
 
@@ -303,6 +305,7 @@ const AGENCEMENT = [
   "<strong>Une seule intensité</strong> : le tempo du jeudi (3 × 5 min) une semaine sur deux à partir de la semaine 5. Aucune zone 4 improvisée dans ce bloc.",
   "<strong>Semaine minimale</strong> si la vie s'en mêle : Upper A, Lower, Upper B, le vélo du jeudi, une course. Cinq jours sur sept, à tenir 90 % du temps.",
   "<strong>Nutrition</strong> : 2 100 kcal, 150 g de protéines, 60 g de lipides, le reste en glucides. Pesée chaque matin à jeun ; toutes les 2 semaines : perte < 0,25 kg/sem → −100 kcal, perte > 0,5 → +100. Semaines 6 et 12 : ~2 400 kcal, entraînement inchangé.",
+  "<strong>Routine posture (5 min)</strong> : tous les jours, collée à la rééduc pied — dead bug, fente genou à terre bassin enroulé, pont fessier. Le matin ou le soir, jamais dans les 2 h avant le Lower. Détail dans le Guide du coach.",
   "<strong>Chaque matin</strong> : poids, calories et protéines de la veille (30 s), douleur pied au réveil. Tour de taille au nombril le lundi. Photo toutes les 4 semaines, même lumière.",
 ];
 
@@ -391,6 +394,7 @@ const JOURNAL_CHAMPS = [
   { cle: "proteines", label: "Protéines de la veille (g)", type: "number", largeur: "petit" },
   { cle: "pied_douleur", label: "Douleur pied au réveil (0-10)", type: "number", largeur: "petit" },
   { cle: "pied", label: "Rééduc pied faite (5 min)", type: "checkbox" },
+  { cle: "posture", label: "Routine posture faite (5 min)", type: "checkbox" },
   { cle: "taille", label: "Tour de taille (cm, le lundi)", type: "number", largeur: "petit" },
   { cle: "sommeil", label: "Sommeil (h)", type: "number", largeur: "petit" },
   { cle: "eau", label: "Eau (L)", type: "number", largeur: "petit" },
@@ -398,3 +402,75 @@ const JOURNAL_CHAMPS = [
   { cle: "electrolytes", label: "Électrolytes (nb)", type: "number", largeur: "petit" },
   { cle: "ressenti", label: "Ressenti / faim / nourriture / notes libres", type: "textarea" },
 ];
+
+/* ---------- ROUTINE POSTURE — 5 min, tous les jours ----------
+   Bascule antérieure du bassin. Ce qu'il faut savoir avant de la lire :
+   85 % des hommes de ton âge ont une bascule antérieure et n'ont mal nulle
+   part (Herrington 2011, 120 sujets asymptomatiques) — c'est la normale, pas
+   un défaut. Et la seule revue systématique du sujet (Brekke 2020, EFORT
+   Open Reviews : 2013 études filtrées, 4 retenues) ne trouve AUCUNE preuve
+   qu'un programme d'exercices réduise l'angle : le meilleur essai obtient
+   moins de 2°, invisible à l'œil.
+
+   Donc cette routine ne « corrige » pas ton bassin. Elle vise les deux
+   choses qui bougent vraiment : le mal de bas du dos quand tu cours (tu l'as
+   noté le 13 août) et la force de la ceinture abdominale à empêcher la
+   cambrure. Le reste du « look » viendra de la sèche : à 13 % de gras, le
+   ventre ne pousse plus en avant et l'arrondi du bas-ventre disparaît. */
+const ROUTINE_POSTURE = {
+  quand: "Tous les jours, le matin ou le soir, collée à ta rééduc pied (5 min de plus, une seule habitude). Jamais dans les 2 h avant le Lower : un étirement long réduit un peu la force sur le moment.",
+  exercices: [
+    {
+      nom: "Dead bug",
+      dose: "3 × 8 par côté",
+      etapes: [
+        "Sur le dos, genoux à 90°, bras tendus vers le plafond",
+        "Colle le bas du dos au sol et GARDE-le collé : c'est tout l'exercice",
+        "Tends une jambe lentement en expirant, reviens, change de côté",
+        "Le dos décolle ? Tu descends moins bas. Une main sous les lombaires pour vérifier les premiers jours",
+      ],
+      pourquoi: "C'est l'exercice central : apprendre à tenir le bassin pendant que les jambes bougent. C'est exactement ce qui se passe quand tu cours, et c'est ce qui manquait le 13 août.",
+    },
+    {
+      nom: "Fente genou à terre, bassin enroulé",
+      dose: "2 × 30 s par côté",
+      etapes: [
+        "Genou arrière au sol, pied avant à plat devant toi",
+        "Serre le fessier arrière ET enroule le bassin vers toi (pubis vers les côtes)",
+        "Avance très légèrement le bassin, sans cambrer",
+        "Tu dois sentir le DEVANT de la hanche arrière. Si ça tire dans le bas du dos, tu cambres au lieu d'étirer",
+      ],
+      pourquoi: "L'étirement passif classique ne change presque rien (1,2° dans l'étude de référence, sans lien avec le gain de souplesse). Fait avec le fessier serré et le bassin enroulé, il devient un exercice de contrôle : tu apprends la position, tu ne l'étires pas.",
+    },
+    {
+      nom: "Pont fessier, côtes basses",
+      dose: "2 × 12, 2 s de maintien en haut",
+      etapes: [
+        "Sur le dos, pieds à plat, monte le bassin en ENROULANT (le pubis part vers les côtes en premier)",
+        "Serre fort les fessiers en haut, côtes basses",
+        "Ne monte pas plus haut en cambrant : la hauteur ne compte pas, la position du bassin oui",
+        "Redescends lentement, vertèbre par vertèbre",
+      ],
+      pourquoi: "Les fessiers travaillent en fin d'amplitude, là où ils sont les plus faibles chez quelqu'un d'assis toute la journée. Version chargée le mercredi au Lower : le hip thrust.",
+    },
+  ],
+  ailleurs: [
+    "<strong>En salle (déjà dans tes séances)</strong> : roulette abdominale le lundi, hip thrust le mercredi, relevés de genoux bassin enroulé le vendredi. Ces trois-là pèsent plus lourd que la routine du matin.",
+    "<strong>En courant</strong> : côtes basses, bassin sous les côtes, petits pas rapides. Si le bas du dos tire, tu raccourcis les segments — c'est le même signal d'alarme que le pied.",
+    "<strong>Devant le miroir ou en photo</strong> : ramène les côtes au-dessus du bassin au lieu de sortir la poitrine. La moitié de ce que tu vois est une position debout, pas une structure.",
+    "<strong>Si le bas du dos continue de tirer en courant</strong> après 6 semaines de routine : c'est une visite chez le kiné, pas plus d'exercices trouvés en ligne.",
+  ],
+};
+
+/* Rendu HTML de la routine — utilisé par le guide (site complet) ET par
+   l'aide du site simple, pour que le contenu n'existe qu'à un seul endroit. */
+function htmlRoutinePosture(compact) {
+  const ex = ROUTINE_POSTURE.exercices.map((e, i) => compact
+    ? `<li><b>${i + 1}. ${e.nom}</b> — ${e.dose}<br><span class="rp-etapes">${e.etapes[1]}</span></li>`
+    : `<div class="card"><h3 style="margin-top:0">${i + 1}. ${e.nom} <span class="badge muscu">${e.dose}</span></h3>
+         <ul>${e.etapes.map(t => `<li>${t}</li>`).join("")}</ul>
+         <details><summary>Pourquoi cet exercice ?</summary><p>${e.pourquoi}</p></details></div>`).join("");
+  if (compact) return `<p><b>Routine posture — 5 min/jour.</b> ${ROUTINE_POSTURE.quand}</p><ol class="rp">${ex}</ol>`;
+  return `<div class="box imp"><strong>Quand ?</strong> ${ROUTINE_POSTURE.quand}</div>${ex}
+    <div class="card"><ul>${ROUTINE_POSTURE.ailleurs.map(t => `<li>${t}</li>`).join("")}</ul></div>`;
+}

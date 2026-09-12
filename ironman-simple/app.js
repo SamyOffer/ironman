@@ -113,6 +113,7 @@ function champJour(cle, label, type = "number") {
 function renderJour() {
   const auj = aujourdhuiISO();
   const kReeduc = `journal.${jourAffiche}.pied`;
+  const kPosture = `journal.${jourAffiche}.posture`;
   const kNote = `journal.${jourAffiche}.ressenti`;
   document.getElementById("carte-jour").innerHTML = `
     <div class="jour-entete">
@@ -128,7 +129,11 @@ function renderJour() {
       <div class="champ"><span>&nbsp;</span>
         <div class="toggle ${state[kReeduc] ? "actif" : ""}"
              onclick="set('${kReeduc}', !state['${kReeduc}']); renderJour(); renderStats(); renderGraphs()">
-          ${state[kReeduc] ? "✓ Rééduc faite" : "Rééduc 5 min"}</div></div>
+          ${state[kReeduc] ? "✓ Rééduc pied" : "Rééduc pied 5 min"}</div></div>
+      <div class="champ"><span>&nbsp;</span>
+        <div class="toggle ${state[kPosture] ? "actif" : ""}"
+             onclick="set('${kPosture}', !state['${kPosture}']); renderJour(); renderStats(); renderGraphs()">
+          ${state[kPosture] ? "✓ Posture" : "Posture 5 min"}</div></div>
       <div class="jour-plus" id="jour-plus">
         ${champJour("taille", "Taille nombril (cm)")} ${champJour("sommeil", "Sommeil (h)")} ${champJour("eau", "Eau (L)")}
         ${champJour("pas", "Pas (facultatif)")} ${champJour("electrolytes", "Électrolytes")}
@@ -335,7 +340,9 @@ function renderGraphs() {
     <div class="graph"><div class="titre-graph">Séances faites / semaine</div>${barres(BLOC.semaines.map((sem, wi) => ({
       x: sem.num, y: sem.seances.filter(s => !s.optionnel && estFaite(s.id)).length, max: sem.seances.filter(s => !s.optionnel).length })))}</div>
     <div class="graph"><div class="titre-graph">Rééduc pied / semaine</div>${barres(BLOC.semaines.map((sem, wi) => ({
-      x: sem.num, y: dates.slice(wi * 7, wi * 7 + 7).filter(d => state[`journal.${d}.pied`]).length, max: 7 })))}</div>`;
+      x: sem.num, y: dates.slice(wi * 7, wi * 7 + 7).filter(d => state[`journal.${d}.pied`]).length, max: 7 })))}</div>
+    <div class="graph"><div class="titre-graph">Routine posture / semaine</div>${barres(BLOC.semaines.map((sem, wi) => ({
+      x: sem.num, y: dates.slice(wi * 7, wi * 7 + 7).filter(d => state[`journal.${d}.posture`]).length, max: 7 })))}</div>`;
 }
 
 /* ============================================================
@@ -344,6 +351,7 @@ function renderGraphs() {
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("sous-titre").textContent = BLOC.nom + " · " + dateJolie(datesDuBloc()[0]).split(" ").slice(1).join(" ") + " → " + dateJolie(datesDuBloc()[datesDuBloc().length - 1]).split(" ").slice(1).join(" ");
   renderStats(); renderJour(); renderChips(); renderSeances(); renderTests(); renderGraphs();
+  document.getElementById("routine-posture").innerHTML = htmlRoutinePosture(true);
   // Fermer le menu ⋯ quand on clique ailleurs
   document.addEventListener("click", e => {
     const menu = document.getElementById("menu");

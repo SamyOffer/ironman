@@ -110,7 +110,14 @@ Les séances non prévues se loggent via « + Ajouter une séance libre »
   `REGISTRE` d'export.js pour que l'Excel reste lisible).
 - Le bloc n'est plus limité à 4 semaines : `datesDuBloc()` suit
   `BLOC.semaines.length`, plus aucun `dates[27]` en dur.
+- Routine posture (bascule antérieure du bassin) : données dans
+  `ROUTINE_POSTURE` + rendu par `htmlRoutinePosture(compact)` — appelé par
+  `guide.html` (version longue) et par l'aide du site simple (version
+  compacte), donc le contenu n'existe qu'à un seul endroit. Suivi par la case
+  `journal.<date>.posture` (2e bouton du journal + graphique hebdo).
+  Les exercices correspondants sont DANS les séances : roulette abdominale
+  (Upper A), hip thrust (Lower), relevés de genoux bassin enroulé (Upper B).
 - Format des clés : `seance.<id>.statut|faitele|raison|rpe|donnees|ressenti`,
   `journal.<date>.<champ>` (poids, calories, proteines, pied_douleur, pied,
-  taille, sommeil, eau, pas, electrolytes, ressenti), `tests.<id>.<champ>`,
+  posture, taille, sommeil, eau, pas, electrolytes, ressenti), `tests.<id>.<champ>`,
   `extra.w<num>.<i>.<champ>`, `checklist-bloc3.<n>`.
