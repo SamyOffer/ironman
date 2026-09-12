@@ -25,7 +25,7 @@
 
 /* Clé du bloc COURANT (source unique — main.js et app.js l'utilisent).
    Changer de bloc = nouvelle clé (v3...), les anciens blocs restent dans le cloud. */
-const STORE_KEY = "ironman-samy-bloc2";
+const STORE_KEY = "ironman-samy-bloc3";
 
 const SYNC_URL = "https://ironman-samy-2028-default-rtdb.europe-west1.firebasedatabase.app/ironman.json";
 const SYNC_PREFIXE = "ironman-samy-";     // toutes les clés de blocs, passés et courant

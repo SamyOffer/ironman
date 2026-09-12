@@ -73,12 +73,29 @@ function renderStats() {
     const v = state[`journal.${d}.pied_douleur`];
     if (v !== undefined && v !== "") { douleur = v; dDouleur = d; }
   });
+  // Poids moyen sur 7 jours et tendance vs les 7 jours précédents (la sèche se pilote là-dessus)
+  const p7 = poidsMoyen(auj, 0), p14 = poidsMoyen(auj, 7);
+  const delta = (p7 !== null && p14 !== null) ? p7 - p14 : null;
+  const deltaTxt = delta === null ? "" : ` (${delta > 0 ? "+" : ""}${delta.toFixed(2)} kg/sem)`;
+  const deltaOk = delta === null || (delta <= -0.2 && delta >= -0.6);
   document.getElementById("stats").innerHTML = `
+    <div class="pastille ${p7 === null ? "" : (deltaOk ? "ok" : "warn")}">
+      <b>${p7 === null ? "—" : p7.toFixed(1)}</b><span>Poids moy. 7 j${deltaTxt}</span></div>
     <div class="pastille ${assiduite === null || assiduite >= 80 ? "ok" : "warn"}">
       <b>${assiduite === null ? "—" : assiduite + " %"}</b><span>Assiduité</span></div>
     <div class="pastille"><b>${faites}/${nonOpt.length}</b><span>Séances${bonus ? " (+" + bonus + " bonus)" : ""}</span></div>
     <div class="pastille ${douleur === null || +douleur <= 2 ? "ok" : "warn"}">
       <b>${douleur === null ? "—" : douleur + "/10"}</b><span>Pied au réveil</span></div>`;
+}
+
+/* Moyenne des pesées sur la fenêtre de 7 jours qui se termine il y a `decalage` jours (null si aucune pesée) */
+function poidsMoyen(auj, decalage) {
+  const vals = [];
+  for (let i = decalage; i < decalage + 7; i++) {
+    const v = state[`journal.${decalerDate(auj, -i)}.poids`];
+    if (v !== undefined && v !== "" && !isNaN(v)) vals.push(+v);
+  }
+  return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
 }
 
 /* ============================================================
@@ -104,15 +121,17 @@ function renderJour() {
       <button class="fleche" onclick="jourAffiche=decalerDate(jourAffiche,1);renderJour()">›</button>
     </div>
     <div class="jour-grille">
-      ${champJour("poids", "Poids (kg)")}
+      ${champJour("poids", "Poids à jeun (kg)")}
+      ${champJour("calories", "Calories veille")}
+      ${champJour("proteines", "Protéines veille (g)")}
       ${champJour("pied_douleur", "Pied réveil (0-10)")}
       <div class="champ"><span>&nbsp;</span>
         <div class="toggle ${state[kReeduc] ? "actif" : ""}"
              onclick="set('${kReeduc}', !state['${kReeduc}']); renderJour(); renderStats(); renderGraphs()">
           ${state[kReeduc] ? "✓ Rééduc faite" : "Rééduc 5 min"}</div></div>
       <div class="jour-plus" id="jour-plus">
-        ${champJour("pas", "Pas")} ${champJour("eau", "Eau (L)")} ${champJour("sommeil", "Sommeil (h)")}
-        ${champJour("calories", "Calories")} ${champJour("proteines", "Protéines (g)")} ${champJour("electrolytes", "Électrolytes")}
+        ${champJour("taille", "Taille nombril (cm)")} ${champJour("sommeil", "Sommeil (h)")} ${champJour("eau", "Eau (L)")}
+        ${champJour("pas", "Pas (facultatif)")} ${champJour("electrolytes", "Électrolytes")}
       </div>
       <div class="jour-note" id="jour-note">
         <label class="champ"><span>Note libre (repas, énergie, pied...)</span>
@@ -131,7 +150,7 @@ function renderJour() {
 let semaineAffichee = (() => {
   const dates = datesDuBloc(), auj = aujourdhuiISO();
   if (auj < dates[0]) return 0;
-  if (auj > dates[27]) return 3;
+  if (auj > dates[dates.length - 1]) return BLOC.semaines.length - 1;
   return Math.floor(dates.indexOf(auj) / 7);
 })();
 
@@ -311,6 +330,7 @@ function renderGraphs() {
   const toutes = BLOC.semaines.flatMap(s => s.seances);
   document.getElementById("graphs").innerHTML = `
     <div class="graph"><div class="titre-graph">Poids (kg)</div>${sparkline(dates.map(d => state[`journal.${d}.poids`] ?? null))}</div>
+    <div class="graph"><div class="titre-graph">Tour de taille (cm)</div>${sparkline(dates.map(d => state[`journal.${d}.taille`] ?? null))}</div>
     <div class="graph"><div class="titre-graph">Douleur pied au réveil</div>${sparkline(dates.map(d => { const v = state[`journal.${d}.pied_douleur`]; return v === undefined || v === "" ? null : v; }))}</div>
     <div class="graph"><div class="titre-graph">Séances faites / semaine</div>${barres(BLOC.semaines.map((sem, wi) => ({
       x: sem.num, y: sem.seances.filter(s => !s.optionnel && estFaite(s.id)).length, max: sem.seances.filter(s => !s.optionnel).length })))}</div>
@@ -322,7 +342,7 @@ function renderGraphs() {
    Démarrage
    ============================================================ */
 document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("sous-titre").textContent = BLOC.nom + " · " + dateJolie(datesDuBloc()[0]).split(" ").slice(1).join(" ") + " → " + dateJolie(datesDuBloc()[27]).split(" ").slice(1).join(" ");
+  document.getElementById("sous-titre").textContent = BLOC.nom + " · " + dateJolie(datesDuBloc()[0]).split(" ").slice(1).join(" ") + " → " + dateJolie(datesDuBloc()[datesDuBloc().length - 1]).split(" ").slice(1).join(" ");
   renderStats(); renderJour(); renderChips(); renderSeances(); renderTests(); renderGraphs();
   // Fermer le menu ⋯ quand on clique ailleurs
   document.addEventListener("click", e => {

@@ -95,12 +95,22 @@ Les séances non prévues se loggent via « + Ajouter une séance libre »
 
 ## Données clés du bloc
 
-- Bloc 2 « Fondations + Course » : 3 → 30 août 2026 (4 semaines).
-  Nouveauté : course à pied en marche/course (3×/sem), natation optionnelle
-  (flag `optionnel: true`, exclue de l'assiduité), champ journal
-  `pied_douleur` (douleur au réveil) avec graphique dédié au dashboard.
-- Clé de sauvegarde : `ironman-samy-bloc2`. Les données de juillet restent
-  dans le navigateur sous `ironman-samy-bloc1` (non affichées, non perdues).
+- Bloc 3 « Sèche + Triathlon, une séance par jour » : 14 sept. → 20 déc. 2026
+  (14 semaines). Jours fixes : Lun Upper A · Mar course · Mer Lower · Jeu vélo
+  Z2 · Ven Upper B · Sam natation · Dim course. Les 98 séances sont GÉNÉRÉES
+  dans `programme-data.js` depuis le tableau `PLAN` (une ligne par semaine :
+  formats course, vélo, natation, note muscu, semaine maintenance/relevé) et
+  les 3 séances de muscu `MUSCU`. Pour changer une progression : une ligne.
+- Nutrition du bloc (dans `AGENCEMENT` et le guide) : 2 100 kcal, 150 g
+  protéines, ajustement toutes les 2 semaines sur la moyenne de poids 7 j
+  (site simple : pastille « Poids moy. 7 j » + tendance). Semaines 6 et 12 à
+  maintenance.
+- Clé de sauvegarde : `ironman-samy-bloc3`. Les Blocs 1 et 2 restent dans le
+  cloud sous `ironman-samy-bloc1` / `ironman-samy-bloc2` (catalogues dans le
+  `REGISTRE` d'export.js pour que l'Excel reste lisible).
+- Le bloc n'est plus limité à 4 semaines : `datesDuBloc()` suit
+  `BLOC.semaines.length`, plus aucun `dates[27]` en dur.
 - Format des clés : `seance.<id>.statut|faitele|raison|rpe|donnees|ressenti`,
-  `journal.<date>.<champ>`, `tests.<id>.<champ>`, `extra.w<num>.<i>.<champ>`,
-  `checklist-bloc1.<n>`.
+  `journal.<date>.<champ>` (poids, calories, proteines, pied_douleur, pied,
+  taille, sommeil, eau, pas, electrolytes, ressenti), `tests.<id>.<champ>`,
+  `extra.w<num>.<i>.<champ>`, `checklist-bloc3.<n>`.

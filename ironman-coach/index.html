@@ -12,7 +12,7 @@
 
   <main class="content">
     <h1>Tableau de bord</h1>
-    <p class="lead">Bloc 2 · Fondations + Course — du 3 au 30 août 2026</p>
+    <p class="lead">Bloc 3 · Sèche + Triathlon, une séance par jour — du 14 septembre au 20 décembre 2026</p>
 
     <details class="aide">
       <summary>ℹ️ L'objectif du bloc + comment marche la sauvegarde (si besoin)</summary>
@@ -130,15 +130,15 @@ function afficherSemaine() {
 
   if (aujourdhui < dates[0]) {
     titre.textContent = "Avant le départ";
-    el.innerHTML = `<div class="card">Le bloc démarre le <strong>lundi 3 août</strong>.
-      D'ici là : rééduc pied quotidienne, et la section course à pied du
-      <a href="guide.html">Guide du coach</a> vaut la lecture avant ta première sortie en Clifton.</div>`;
+    el.innerHTML = `<div class="card">Le bloc démarre le <strong>lundi 14 septembre</strong>.
+      D'ici là : mesures de départ (page <a href="tests.html">Tests</a>) et la section sèche du
+      <a href="guide.html">Guide du coach</a>.</div>`;
     return;
   }
-  if (aujourdhui > dates[27]) {
+  if (aujourdhui > dates[dates.length - 1]) {
     titre.textContent = "Bloc terminé";
     el.innerHTML = `<div class="card">Bloc terminé 🎉 — remplis la page <a href="tests.html">Tests</a>,
-      exporte tes données et envoie-moi le fichier pour le Bloc 3.</div>`;
+      exporte tes données et envoie-moi le fichier pour janvier (régime inversé).</div>`;
     return;
   }
 

@@ -47,6 +47,31 @@ const REGISTRE = [
       "test-bilan": "Bilan libre",
     },
   },
+  {
+    cle: "ironman-samy-bloc2",
+    nom: "Bloc 2 — Fondations + Course",
+    periode: "3 – 30 août 2026",
+    seances: {
+      "w1-c1": [1, "course", "Marche/Course n°1"], "w1-c2": [1, "course", "Marche/Course n°2"], "w1-c3": [1, "course", "Marche/Course n°3"],
+      "w1-upA": [1, "muscu", "Upper A"], "w1-loA": [1, "muscu", "Lower A"], "w1-upB": [1, "muscu", "Upper B"], "w1-loB": [1, "muscu", "Lower B"],
+      "w1-v1": [1, "velo", "Vélo Z2"], "w1-v2": [1, "velo", "Vélo Z2 long"], "w1-nat": [1, "natation", "Natation technique (optionnelle)"],
+      "w2-c1": [2, "course", "Marche/Course — 7× (2'/2')"], "w2-c2": [2, "course", "Marche/Course — 7× (2'/2')"], "w2-c3": [2, "course", "Marche/Course — 8× (2'/1'30)"],
+      "w2-upA": [2, "muscu", "Upper A"], "w2-loA": [2, "muscu", "Lower A"], "w2-upB": [2, "muscu", "Upper B"], "w2-loB": [2, "muscu", "Lower B"],
+      "w2-v1": [2, "velo", "Vélo Z2"], "w2-v2": [2, "velo", "Vélo Z2 long"], "w2-nat": [2, "natation", "Natation technique (optionnelle)"],
+      "w3-c1": [3, "course", "Marche/Course — 5× (3'/2')"], "w3-c2": [3, "course", "Marche/Course — 6× (3'/2')"], "w3-c3": [3, "course", "Marche/Course — 5× (4'/2')"],
+      "w3-upA": [3, "muscu", "Upper A"], "w3-loA": [3, "muscu", "Lower A"], "w3-upB": [3, "muscu", "Upper B"], "w3-loB": [3, "muscu", "Lower B"],
+      "w3-v1": [3, "velo", "Vélo Z2 + tempo"], "w3-v2": [3, "velo", "Vélo Z2 long"], "w3-nat": [3, "natation", "Natation technique (optionnelle)"],
+      "w4-c1": [4, "course", "Course assimilation — 6× (2'/2')"], "w4-c2": [4, "course", "Course assimilation — 4× (3'/2')"], "w4-tc": [4, "test", "TEST — Course continue (cap 20 min)"],
+      "w4-upA": [4, "muscu", "Upper A + relevé de charges"], "w4-loA": [4, "muscu", "Lower A + relevé de charges"], "w4-upB": [4, "muscu", "Upper B"], "w4-loB": [4, "muscu", "Lower B allégé"],
+      "w4-v1": [4, "velo", "Vélo Z2 souple"], "w4-tv": [4, "test", "TEST — 20 min vélo max"], "w4-nat": [4, "natation", "Natation souple (optionnelle)"],
+      "w4-bilan": [4, "test", "BILAN du bloc + export"],
+    },
+    tests: {
+      "test-course": "Course continue — cap 20 min", "test-velo": "20 min vélo — effort max",
+      "test-muscu": "Relevé de charges (Hevy)", "test-nage": "200 m nage chrono (optionnel)",
+      "test-corps": "Poids & mensurations", "test-bilan": "Bilan libre du bloc",
+    },
+  },
   /* Le bloc COURANT est décrit par programme-data.js (BLOC/TESTS)
      et injecté dynamiquement par blocsConnus() ci-dessous. */
 ];
@@ -56,7 +81,7 @@ function blocsConnus() {
   const courant = {
     cle: STORE_KEY,
     nom: BLOC.nom,
-    periode: dateJolie(datesDuBloc()[0]) + " – " + dateJolie(datesDuBloc()[27]),
+    periode: dateJolie(datesDuBloc()[0]) + " – " + dateJolie(datesDuBloc()[datesDuBloc().length - 1]),
     seances: {}, tests: {}, courant: true,
   };
   BLOC.semaines.forEach(sem => sem.seances.forEach(s => {

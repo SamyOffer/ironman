@@ -1,20 +1,29 @@
 /* ============================================================
    IRONMAN COACH — programme-data.js
    TOUT le contenu du bloc d'entraînement est ici, en données.
-   Le code (programme.html) ne fait que l'afficher.
+   Le code (programme.html, site simple) ne fait que l'afficher.
 
-   >>> BLOC 2 — la course à pied entre en piste (3 → 30 août 2026)
-   (Le Bloc 1 de juillet reste sauvegardé dans le navigateur sous
-   la clé "ironman-samy-bloc1" — rien n'est perdu.)
+   >>> BLOC 3 — Sèche + Triathlon, UNE séance par jour
+       (lundi 14 septembre → dimanche 20 décembre 2026, 14 semaines)
+   (Les Blocs 1 et 2 restent sauvegardés sous leurs clés
+   "ironman-samy-bloc1" / "ironman-samy-bloc2" — rien n'est perdu.)
 
-   PLANNING FLEXIBLE : chaque semaine est un MENU de séances,
-   sans jour imposé. Samy les agence lui-même (règles : AGENCEMENT).
+   PRINCIPE DU BLOC : 7 séances par semaine, une par jour, jours fixes
+   (Samy a demandé « une séance par jour, pas d'objectif de pas »).
+   Le planning reste techniquement flexible (tu peux décaler), mais
+   chaque séance porte son jour conseillé dans son titre.
+
+   Pourquoi 3 muscu et pas 4 : quand chaque série est dure, deux Upper
+   + un Lower font autant de muscle que quatre séances moyennes, et ça
+   libère quatre jours pour le triathlon. Le vélo touche trois fois la
+   semaine sans visite de plus : 15-20 min de Z2 souple sur les vélos
+   de la salle en sortie des Upper.
 
    Structure d'une séance (module unique, valable pour TOUS les sports) :
    {
      id:        identifiant unique (sert de clé de sauvegarde)
      type:      "muscu" | "natation" | "velo" | "course" | "marche" | "test" | "repos"
-     titre:     nom court
+     titre:     nom court (préfixé du jour conseillé)
      duree:     indication de durée
      objectif:  la consigne clé en une phrase
      contenu:   liste des étapes de la séance
@@ -22,358 +31,299 @@
      hint:      placeholder du champ "données" (guide sans imposer)
      optionnel: true = bonus, pas comptée dans l'assiduité
    }
+
+   Les 14 semaines sont GÉNÉRÉES depuis le tableau PLAN ci-dessous
+   (une ligne par semaine) + les 3 séances de muscu (MUSCU) : pour
+   modifier une progression, on touche UNE ligne, pas 98 cartes.
    ============================================================ */
 
 "use strict";
 
+/* ---------- Les 3 séances de muscu du bloc ----------
+   Toutes les séries de travail à 0-2 reps de l'échec. Épaules en
+   premier dans les deux Upper : c'est le muscle prioritaire. */
+const MUSCU = {
+  upperA: {
+    titre: "Lun · Upper A — épaules & largeur",
+    duree: "~60 min + 15-20 min de vélo Z2",
+    objectif: "Élévations latérales en premier, chaque série dure, puis 15-20 min de vélo souple sur place.",
+    contenu: [
+      "1. Élévations latérales haltères — 4 × 12-20",
+      "2. Tirage vertical prise large (ou tractions) — 4 × 6-10",
+      "3. Développé incliné haltères — 3 × 8-12",
+      "4. Tirage devant haltères (upright row prise large) — 3 × 12-15",
+      "5. Curl incliné haltères — 3 × 10-15",
+      "6. Extension triceps corde — 3 × 12-15",
+      "7. Crunch poulie — 3 × 12-15",
+      "Puis 15-20 min de vélo Z2 souple (120-135 bpm) sur un vélo de la salle — la première chose à sauter si tu es pressé",
+    ],
+    pourquoi: "Ton ancien Upper commençait par le développé couché et finissait par 3 séries d'élévations latérales. Pour un « V », c'est l'inverse : les deltoïdes latéraux et les dorsaux font la largeur, le haut des pecs et les bras remplissent. Un muscle prioritaire se travaille frais, en début de séance (Lucas Gouiffes), et ce qui le fait grandir, c'est le nombre de séries dures par semaine, pas les kilos sur la barre (Pelland 2025).",
+    hint: "Ex : charges, reps en réserve, séries ajoutées...",
+  },
+  lower: {
+    titre: "Mer · Lower complet + mollets Rathleff",
+    duree: "~55-60 min",
+    objectif: "Un seul Lower par semaine : le vélo et la course font le reste. Mollets Rathleff obligatoires.",
+    contenu: [
+      "1. Hack squat ou presse — 4 × 8-12, amplitude complète",
+      "2. Soulevé de terre roumain — 3 × 8-12, hip-hinge strict",
+      "3. Leg extension — 2 × 12-15, dernière série à l'échec",
+      "4. Leg curl allongé — 3 × 10-15",
+      "5. Fentes bulgares haltères — 2 × 8-10 par côté (à sauter si tu manques de temps)",
+      "6. Mollets Rathleff — 3 × 12 unilatéral, SERVIETTE ROULÉE SOUS LES ORTEILS, montée 2 s / pause 2 s / descente 3 s",
+      "7. Gainage planche — 3 × 30-60 s",
+      "Jamais la veille d'une course : mardi et dimanche restent libres",
+    ],
+    pourquoi: "En sèche avec deux vélos et deux courses par semaine, les jambes reçoivent déjà beaucoup : un Lower dur suffit à les entretenir, et deux Upper libèrent la place pour les épaules et le dos. Le protocole Rathleff (serviette sous les orteils) reste le traitement le mieux validé de la fasciite ; tant que tu cours, il compte double.",
+    hint: "Ex : charges, douleur pied pendant les mollets, fatigue 0-10...",
+  },
+  upperB: {
+    titre: "Ven · Upper B — épaisseur & bras",
+    duree: "~60 min + 15-20 min de vélo Z2",
+    objectif: "Deuxième passage épaules/dos de la semaine, bras et haut des pecs, puis 15-20 min de vélo souple.",
+    contenu: [
+      "1. Élévations latérales poulie, unilatéral — 4 × 12-15",
+      "2. Rowing haltère unilatéral — 3 × 8-12",
+      "3. Tirage vertical prise neutre — 3 × 8-12",
+      "4. Écarté poulie basse (haut des pecs) — 3 × 12-15",
+      "5. Curl marteau — 3 × 10-12",
+      "6. Extension nuque haltère — 3 × 10-12",
+      "7. Face pull — 2 × 15-20",
+      "8. Relevés de genoux suspendu — 3 × 10-15",
+      "Puis 15-20 min de vélo Z2 souple sur un vélo de la salle",
+    ],
+    pourquoi: "Par semaine, ça donne : deltoïdes latéraux 11 séries, dorsaux 7, rowing 3, haut des pecs 6, biceps 6, triceps 6, arrière d'épaule 2, abdos 9. C'est la répartition d'un physique, pas d'un programme de force. Progression : d'abord les reps dans la fourchette, puis la charge, et quand un muscle prioritaire stagne 3 semaines, +1 série dessus.",
+    hint: "Ex : charges, reps en réserve, séries ajoutées...",
+  },
+};
+
+/* ---------- Le plan, une ligne par semaine ----------
+   c1 = course du mardi, c2 = course du dimanche, velo = jeudi, nat = samedi.
+   maint = semaine à MAINTENANCE calorique (entraînement inchangé).
+   releve = relevé de charges muscu (→ page Tests). */
+const PLAN = [
+  { num: 1, theme: "Reprise et calibrage",
+    focus: "Trois semaines sans courir : on repart exactement là où le pied avait dit oui le 21 août. En salle, semaine de calibrage : trouve pour chaque exercice la charge qui te laisse 2 reps en réserve, note-la dans Hevy. Calories : 2 100, protéines 150 g, pesée chaque matin.",
+    c1: "8 × (1' course / 2' marche)", c2: "8 × (1' / 2')", velo: "60 min Z2 stricte", nat: "400 m technique — première fois",
+    muscuNote: "Semaine de calibrage : charge à 2 reps en réserve sur chaque exercice, tu la notes dans Hevy" },
+  { num: 2, theme: "Segments de 2 minutes",
+    focus: "Mardi, la séance du 21 août (10 × 1 min) ; dimanche, premiers segments de 2 minutes. Pied ≤ 3/10 ou on reste sur le format précédent.",
+    c1: "10 × (1' / 2')", c2: "7 × (2' / 2')", velo: "60 min Z2 stricte", nat: "400 m technique",
+    muscuNote: "Progression normale : reps dans la fourchette d'abord, puis la charge" },
+  { num: 3, theme: "Un seul curseur à la fois",
+    focus: "Dimanche, la récup entre les segments se réduit (1 min 30) sans allonger les segments. Fin de la 2e semaine de calories : première décision sur la moyenne 7 jours (perte < 0,25 kg/sem → −100 kcal ; > 0,5 → +100).",
+    c1: "7 × (2' / 2')", c2: "8 × (2' / 1'30)", velo: "60 min Z2 stricte", nat: "500 m technique",
+    muscuNote: "Progression normale" },
+  { num: 4, theme: "Le cap des 3 minutes + premier relevé",
+    focus: "Segments de 3 minutes. Vélo allégé jeudi pour arriver frais sur la course. Relevé de tes meilleures séries Upper et Lower → page Tests.",
+    c1: "5 × (3' / 2')", c2: "6 × (3' / 2')", velo: "45 min Z2 souple (semaine allégée)", nat: "500 m technique",
+    muscuNote: "Relevé de charges : reporte tes 2-3 meilleures séries dans la page Tests", releve: true },
+  { num: 5, theme: "4 et 5 minutes, premier tempo vélo",
+    focus: "Première intensité structurée du bloc : 3 × 5 min de tempo au vélo du jeudi (150-160 bpm). C'est la SEULE intensité du bloc — aucune zone 4 improvisée.",
+    c1: "5 × (4' / 2')", c2: "4 × (5' / 2')", velo: "75 min Z2 + 3 × 5 min tempo", nat: "600 m technique",
+    muscuNote: "Un muscle prioritaire stagne depuis 3 semaines ? +1 série par séance dessus" },
+  { num: 6, theme: "Semaine à maintenance (calories), pas de repos",
+    focus: "Tu remontes à ~2 400 kcal toute la semaine (glucides), entraînement inchangé. Ça protège le métabolisme et le moral (étude MATADOR) ; le poids peut remonter de 0,5 kg d'eau et de glycogène, c'est normal.",
+    c1: "5 × (4' / 2')", c2: "4 × (5' / 2')", velo: "75 min Z2 stricte", nat: "600 m technique",
+    muscuNote: "Profite des glucides : semaine où les charges doivent monter", maint: true },
+  { num: 7, theme: "6 et 8 minutes",
+    focus: "Retour à 2 100 kcal (ou ta valeur ajustée). Les segments passent à 6 puis 8 minutes : tu apprends à trouver un rythme de croisière. Tempo vélo le jeudi.",
+    c1: "3 × (6' / 2')", c2: "3 × (8' / 2')", velo: "75 min Z2 + 3 × 5 min tempo", nat: "600-800 m : 4 × 66 m + technique",
+    muscuNote: "Progression normale" },
+  { num: 8, theme: "Consolidation + relevé",
+    focus: "Répétition à dose égale avant la prochaine montée. Deuxième relevé de charges → page Tests. Photo du mois, tour de taille.",
+    c1: "3 × (6' / 2')", c2: "3 × (8' / 2')", velo: "75 min Z2 stricte", nat: "600-800 m : 4 × 66 m + technique",
+    muscuNote: "Relevé de charges → page Tests", releve: true },
+  { num: 9, theme: "10 minutes, puis 15 minutes continues",
+    focus: "Dimanche : tes premières 15 minutes sans marcher. Allure conversation, ~170 pas/min, regard loin. Tempo vélo le jeudi.",
+    c1: "2 × (10' / 2')", c2: "15 min en continu", velo: "75 min Z2 + 3 × 5 min tempo", nat: "800 m : 6 × 66 m + technique",
+    muscuNote: "Progression normale" },
+  { num: 10, theme: "Répétition à dose égale",
+    focus: "Même format que la semaine 9 : les tissus encaissent deux fois la même charge avant la prochaine montée. Vélo long : 90 min.",
+    c1: "2 × (10' / 2')", c2: "15 min en continu", velo: "90 min Z2 stricte, barre à 45 min", nat: "800 m : 6 × 66 m + technique",
+    muscuNote: "Progression normale" },
+  { num: 11, theme: "20 minutes continues",
+    focus: "Le format du test que le Bloc 2 n'a jamais fait : 20 minutes en continu, dimanche. Tempo vélo le jeudi.",
+    c1: "2 × (10' / 2')", c2: "20 min en continu", velo: "75 min Z2 + 3 × 5 min tempo", nat: "800-1000 m : 8 × 66 m + technique",
+    muscuNote: "Progression normale" },
+  { num: 12, theme: "Maintenance + relevé",
+    focus: "Deuxième semaine à ~2 400 kcal, entraînement inchangé. Troisième relevé de charges. Vélo long 90 min.",
+    c1: "2 × (10' / 2')", c2: "20 min en continu", velo: "90 min Z2 stricte, barre à 45 min", nat: "800-1000 m : 8 × 66 m + technique",
+    muscuNote: "Relevé de charges → page Tests", maint: true, releve: true },
+  { num: 13, theme: "Assimilation",
+    focus: "Retour au déficit. Volume stable, rien de nouveau : on arrive frais à la semaine des tests.",
+    c1: "20 min en continu", c2: "25 min en continu", velo: "75 min Z2 stricte", nat: "1000 m souple",
+    muscuNote: "Séances normales, pas de série ajoutée cette semaine" },
+  { num: 14, theme: "Tests et bilan",
+    focus: "Test course mardi (continu, cap 30 min), test vélo jeudi (20 min max, 2 jours après), test nage samedi (200 m chrono), pesée + tour de taille + bilan dimanche. Relevé final de charges lundi et mercredi. Résultats → page Tests, puis export du .json.",
+    c1: null, c2: null, velo: null, nat: null,
+    muscuNote: "Relevé final de charges → page Tests", releve: true, tests: true },
+];
+
+/* ---------- Générateur des 14 semaines ---------- */
+function _muscu(sem, cle, id) {
+  const m = MUSCU[cle];
+  const note = sem.muscuNote ? [sem.muscuNote] : [];
+  return { id, type: "muscu", titre: m.titre, duree: m.duree, objectif: m.objectif,
+           contenu: note.concat(m.contenu), pourquoi: m.pourquoi, hint: m.hint };
+}
+
+function _course(sem, id, jour, format, n) {
+  const continu = /continu/.test(format);
+  return { id, type: "course", titre: `${jour} · Marche/course n°${n} — ${format}`,
+    duree: continu ? "~35-45 min" : "~35-45 min",
+    objectif: continu
+      ? `${format} à allure conversation, puis 5 min de marche. Pied ≤ 3/10 ou on s'arrête.`
+      : `${format}, allure conversation. Pied ≤ 3/10 ou on s'arrête AU MILIEU de la séance, pas après.`,
+    contenu: [
+      "5 min de marche rapide pour échauffer",
+      continu ? `${format} — tu peux parler en courant` : `${format} — tu peux parler en courant`,
+      "5 min de marche pour finir",
+      "Clifton + semelles, petits pas rapides (~170/min), atterris sous ton corps",
+      "Douleur pied > 3/10 pendant → stop, tu rentres en marchant, séance en « adapté » avec la raison",
+      "Douleur > 2/10 le lendemain → tu répètes ce format la semaine prochaine au lieu de monter",
+    ],
+    pourquoi: "Le 13 août tu as fini une séance à 8/10 de douleur : c'était la séance à arrêter. Cette fois, la règle s'applique pendant, pas après. Les deux courses de la semaine sont à 48 h l'une de l'autre et jamais la veille ou le lendemain du Lower : c'est le délai de réparation des tissus du pied. Un seul curseur monte à la fois (durée des segments OU récupération OU nombre de répétitions).",
+    hint: "Ex : format tenu ?, douleur pied 0-10 pendant / après, FC, essoufflement...",
+  };
+}
+
+function _velo(sem, id, format) {
+  const tempo = /tempo/.test(format);
+  return { id, type: "velo", titre: `Jeu · Vélo — ${format}`,
+    duree: format.split(" ")[0] + " min",
+    objectif: tempo
+      ? "Z2 (120-140 bpm) avec 3 × 5 min de tempo à 150-160 bpm, 5 min de Z2 souple entre chaque."
+      : "Zone 2 stricte : 120-140 bpm, cadence 85-90, tu peux parler.",
+    contenu: tempo
+      ? ["10 min d'échauffement", "3 × (5 min tempo 150-160 bpm / 5 min Z2 souple)", "Complète en Z2 jusqu'à la durée, 5 min calme", "750 ml d'eau + électrolytes sur la séance"]
+      : ["5 min d'échauffement, puis Z2 jusqu'à la durée, 5 min calme", "3 × 30 s de cadence 100+ répartis pour délier", "750 ml d'eau + électrolytes par heure", /90/.test(format) ? "Une barre vers 45 min : on entraîne l'alimentation en selle" : "Bidon obligatoire dès 60 min"],
+    pourquoi: tempo
+      ? "La seule intensité structurée du bloc : le tempo élève ton plafond pendant que la Z2 élargit la base. Dosé pour ne pas voler la récupération de la course ni de la sèche. Jamais de zone 4 improvisée : tes deux sorties « difficulté 5-6 » d'août ont fatigué sans construire."
+      : "Le moteur diesel de l'Ironman se construit ici, à faible coût pour le pied et sans manger ta récupération. Un Ironman se court à 70-75 % sous le seuil : rouler trop fort trop souvent est l'erreur n°1.",
+    hint: "Ex : distance, FC moyenne, watts, sensations jambes...",
+  };
+}
+
+function _nat(sem, id, format) {
+  return { id, type: "natation", titre: `Sam · Natation — ${format}`,
+    duree: "~30-40 min",
+    objectif: "Pure technique, zéro pression sur le chrono. Neptunium, créneau 8 h-10 h.",
+    contenu: [
+      "Échauffement 2 × 33 m souple",
+      /66/.test(format) ? format.replace(/^\d+(-\d+)? m : /, "") + ", repos 30 s" : "8-10 × 33 m crawl, repos 20-30 s",
+      "2 × 33 m dos pour finir",
+      "Expire À FOND sous l'eau, en continu dès que le visage est dans l'eau",
+      "Allonge le bras devant à chaque mouvement : moins de mouvements par longueur = meilleure nage",
+      "Respire tous les 3 temps ; trop dur ? 2 temps du côté confortable",
+    ],
+    pourquoi: "La natation est le premier tiers de ton Ironman (3,8 km) et tu ne l'as jamais commencée. Une fois par semaine maintenant, c'est le minimum pour que la sensation de l'eau s'installe ; en janvier on passe à deux.",
+    hint: "Ex : longueurs, essoufflement, ce qui a marché...",
+  };
+}
+
+function _test(id, jour, titre, duree, objectif, contenu, pourquoi, hint) {
+  return { id, type: "test", titre: `${jour} · ${titre}`, duree, objectif, contenu, pourquoi, hint };
+}
+
+function _semaine(sem) {
+  const w = `w${sem.num}`;
+  const seances = [];
+  seances.push(_muscu(sem, "upperA", `${w}-lun`));
+  if (sem.tests) {
+    seances.push(_test(`${w}-mar`, "Mar", "TEST — Course continue (cap 30 min)", "~45 min",
+      "Courir en continu à allure conversation, aussi longtemps que possible, STOP à 30 min.",
+      ["10 min d'échauffement : marche rapide + 3 × 1 min de course facile",
+       "TEST : cours en continu, allure conversation, jusqu'à 30 min MAXIMUM",
+       "Tu t'arrêtes avant si : douleur pied > 3/10, ou tu n'arrives plus à parler",
+       "5 min de marche pour finir",
+       "Note : durée tenue, distance, FC moyenne, douleur pied → page Tests"],
+      "Le test que le Bloc 2 n'a jamais fait. L'objectif n'est PAS la vitesse : c'est la durée tenue à allure aisée. En juin tu étais mort après 300 m ; en août tu tenais 1 minute. On mesure le chemin.",
+      "Durée tenue, distance, FC, douleur, gestion..."));
+  } else {
+    seances.push(_course(sem, `${w}-mar`, "Mar", sem.c1, 1));
+  }
+  seances.push(_muscu(sem, "lower", `${w}-mer`));
+  if (sem.tests) {
+    seances.push(_test(`${w}-jeu`, "Jeu", "TEST — 20 min vélo max", "~40 min",
+      "20 min à l'effort maximal SOUTENABLE et régulier : la plus grande distance possible.",
+      ["10 min d'échauffement progressif avec 2 × 30 s appuyés", "3 min tranquille",
+       "TEST : 20 min à fond régulier — les 5 premières minutes doivent sembler « trop faciles »",
+       "Note distance, vitesse moyenne, FC moyenne, watts si affichés → page Tests", "10 min retour au calme"],
+      "Le test de 20 min estime ton seuil (≈ 95 % de la moyenne) et calibre tes zones vélo de 2027. Référence de juin : 14 km en 32 min (~26 km/h). Deux jours après le test course.",
+      "Distance, vitesse moy., FC, watts, gestion..."));
+  } else {
+    seances.push(_velo(sem, `${w}-jeu`, sem.velo));
+  }
+  seances.push(_muscu(sem, "upperB", `${w}-ven`));
+  if (sem.tests) {
+    seances.push(_test(`${w}-sam`, "Sam", "TEST — 200 m nage chrono", "~30 min",
+      "Échauffement complet, 3 min de repos, puis 6 × 33 m enchaînées (198 m) chronométrées à l'Apple Watch.",
+      ["6 × 33 m progressifs en échauffement", "3 min de repos complet", "6 × 33 m enchaînées sans pause, chrono", "Note le chrono et tes sensations → page Tests"],
+      "Ta première référence nage. Pour situer : 4:30-5:00 serait très correct après des années d'arrêt.",
+      "Chrono, sensations..."));
+    seances.push(_test(`${w}-dim`, "Dim", "BILAN du bloc + pesée + export", "~20 min",
+      "Repos complet. Pesée à jeun, tour de taille, photo, bilan écrit, export du fichier.",
+      ["Pèse-toi à jeun + tour de taille au nombril → page Tests",
+       "Photo dans la même lumière que celle du 14 septembre",
+       "Remplis le bilan libre : ce qui a marché, ce qui a coincé, le pied, la faim, la natation",
+       "Menu ⋯ → « Sauvegarde .json » → envoie-moi le fichier",
+       "Repos. Mérité."],
+      "Avec ce fichier on construit janvier : le régime inversé (+150 kcal/semaine jusqu'à stagnation), la natation à deux fois par semaine, et les zones vélo sur ton test.",
+      "Ton bilan libre du bloc..."));
+  } else {
+    seances.push(_nat(sem, `${w}-sam`, sem.nat));
+    const c2 = _course(sem, `${w}-dim`, "Dim", sem.c2, 2);
+    c2.contenu.push("Pied qui dit non ce matin ? Remplace par 90 min de vélo Z2 (statut « adapté »)");
+    seances.push(c2);
+  }
+  return { num: sem.num, theme: sem.theme, focus: sem.focus, seances };
+}
+
 const BLOC = {
-  nom: "Bloc 2 — Fondations + Course",
-  debut: "2026-08-03",           // lundi 3 août 2026
+  nom: "Bloc 3 — Sèche + Triathlon, une séance par jour",
+  debut: "2026-09-14",           // lundi 14 septembre 2026
   objectifBloc:
-    "La course à pied entre enfin dans le jeu — en marche/course, parce que ta fasciite " +
-    "et ta base aérobie imposent la patience sur les IMPACTS, pas sur le volume. " +
-    "Muscu à fond (progression normale), vélo en soutien, natation optionnelle ce mois-ci. " +
-    "Fin août : ton premier test course, la référence des deux ans qui viennent. " +
-    "Règle absolue du mois : le pied décide. Douleur > 3/10 = on adapte, jamais on force.",
-
-  semaines: [
-    /* ================= SEMAINE 1 (3-9 août) ================= */
-    {
-      num: 1,
-      theme: "La course entre en piste — marche/course",
-      focus:
-        "Grande nouveauté : 3 séances de course en alternance marche/course, Clifton aux pieds, " +
-        "semelles dedans. Les intervalles vont te sembler ridiculement courts — c'est voulu : " +
-        "ton cœur s'adapte en quelques jours, tes tendons et ta voûte plantaire en plusieurs " +
-        "semaines. Ce sont EUX qui dictent le rythme du mois. Muscu normale, vélo en soutien.",
-      seances: [
-        { id: "w1-c1", type: "course", titre: "Marche/Course n°1 — la première", duree: "~35 min",
-          objectif: "8× (1 min course très lente / 2 min marche). Allure : tu peux parler en courant.",
-          contenu: [
-            "5 min de marche rapide pour échauffer",
-            "8× (1 min de course TRÈS lente / 2 min de marche)",
-            "5 min de marche pour finir",
-            "Petits pas rapides, atterris sous ton corps (pas devant), regard loin",
-            "Douleur pied : au-dessus de 3/10 → on arrête et on rentre en marchant, c'est OK",
-            "Note ta douleur pied pendant/après dans les données",
-          ],
-          pourquoi: "Être essoufflé après 300 m, c'est juste une base aérobie jamais construite — ça se corrige vite en découpant l'effort. Et la reprise post-fasciite se fait par impacts courts et espacés : c'est le protocole standard. La frustration d'aujourd'hui est le prix de la cheville qui tiendra un marathon dans deux ans.",
-          hint: "Ex : les 8 répétitions passées ?, douleur pied 0-10, essoufflement..." },
-
-        { id: "w1-c2", type: "course", titre: "Marche/Course n°2", duree: "~35 min",
-          objectif: "Même format : 8× (1 min / 2 min). Minimum 48 h après la n°1.",
-          contenu: [
-            "5 min marche rapide",
-            "8× (1 min course lente / 2 min marche)",
-            "5 min marche",
-            "Vérifie ce matin : raideur du pied au réveil ? Si en hausse, décale d'un jour",
-          ],
-          pourquoi: "La répétition à dose égale : on laisse les tissus encaisser la même charge deux fois avant d'augmenter quoi que ce soit. Les 48 h entre deux courses sont le temps de réparation des micro-contraintes du pied.",
-          hint: "Ex : douleur pied 0-10, sensations vs la n°1..." },
-
-        { id: "w1-c3", type: "course", titre: "Marche/Course n°3", duree: "~40 min",
-          objectif: "10× (1 min / 2 min) — seulement si les 2 premières sont passées proprement.",
-          contenu: [
-            "5 min marche rapide",
-            "10× (1 min course lente / 2 min marche)",
-            "5 min marche",
-            "Si douleur > 2/10 le lendemain des séances précédentes : reste à 8 répétitions",
-          ],
-          pourquoi: "Première petite augmentation (+2 répétitions), conditionnée à la réaction du pied. C'est comme ça qu'on progressera tout le mois : le pied vote avant chaque montée.",
-          hint: "Ex : 8 ou 10 reps ?, douleur, essoufflement en fin de séance..." },
-
-        { id: "w1-upA", type: "muscu", titre: "Upper A", duree: "~60 min",
-          objectif: "Progression normale, règle d'or, RIR 1-2.",
-          contenu: [
-            "Ta séance Upper A dans Hevy",
-            "Haut de la fourchette de reps atteint → monte la charge",
-            "5 min de gainage pour finir",
-          ],
-          pourquoi: "Tu as gardé la muscu en juillet : on continue la progression normale. La fréquence ×2 par groupe musculaire reste le schéma le plus efficace pour l'hypertrophie.",
-          hint: "Ex : charges, progression..." },
-
-        { id: "w1-loA", type: "muscu", titre: "Lower A", duree: "~60 min",
-          objectif: "Progression normale + mollets excentriques (tes amortisseurs de coureur).",
-          contenu: [
-            "Ta séance Lower A dans Hevy",
-            "Finisher Rathleff : 3×12 élévations mollets unilatérales, SERVIETTE ROULÉE SOUS LES ORTEILS, montée 2 s / pause 2 s / descente 3 s",
-            "Jamais la veille d'une séance de course si tu peux l'éviter",
-          ],
-          pourquoi: "Des mollets forts absorbent l'impact avant qu'il n'arrive à ta voûte plantaire. La serviette roulée sous les orteils tend le fascia pendant l'élévation (mécanisme de treuil) : c'est le protocole exact de l'essai de Rathleff 2015, le traitement le mieux validé de la fasciite. Maintenant que tu cours, il compte double.",
-          hint: "Ex : charges, douleur pied pendant les mollets..." },
-
-        { id: "w1-upB", type: "muscu", titre: "Upper B", duree: "~60 min",
-          objectif: "Progression normale, règle d'or.",
-          contenu: ["Ta séance Upper B dans Hevy"],
-          pourquoi: "Constance. Deuxième passage haut du corps de la semaine.",
-          hint: "Ex : charges..." },
-
-        { id: "w1-loB", type: "muscu", titre: "Lower B", duree: "~60 min",
-          objectif: "Progression normale + mollets.",
-          contenu: ["Ta séance Lower B dans Hevy", "Mollets protocole Rathleff : 3×12 unilatéral, serviette sous les orteils, tempo lent"],
-          pourquoi: "À placer loin du Lower A (48 h min) et pas la veille d'une course.",
-          hint: "Ex : charges, fatigue de la semaine 0-10..." },
-
-        { id: "w1-v1", type: "velo", titre: "Vélo Z2", duree: "60 min",
-          objectif: "Zone 2 stricte : FC 120-140, tu peux parler.",
-          contenu: [
-            "5 min échauffement, 50 min Z2 cadence 85-90, 5 min calme",
-            "750 ml d'eau (électrolytes si dispo) sur la séance",
-          ],
-          pourquoi: "Le vélo passe en soutien ce mois-ci : il entretient le moteur aérobie sans impact, pendant que le pied apprend la course. C'est aussi ta soupape : course impossible → vélo à la place.",
-          hint: "Ex : distance, FC moyenne, watts..." },
-
-        { id: "w1-v2", type: "velo", titre: "Vélo Z2 long", duree: "75 min",
-          objectif: "75 min Z2 continue. Hydratation complète.",
-          contenu: [
-            "5 min échauffement, 65 min Z2, 5 min calme",
-            "Toutes les 15 min : 30 s de cadence 100+ pour délier",
-          ],
-          pourquoi: "La sortie la plus longue de la semaine : l'endurance profonde se construit ici, à faible coût pour le pied.",
-          hint: "Ex : distance, FC, mental..." },
-
-        { id: "w1-nat", type: "natation", titre: "Natation technique (optionnelle)", duree: "~30 min", optionnel: true,
-          objectif: "500-600 m au feeling, pure technique, zéro pression.",
-          contenu: [
-            "Échauffement 2×33 m souple",
-            "8-10×33 m crawl, repos 20-30 s — expiration complète, allonge devant",
-            "2×33 m dos pour finir",
-          ],
-          pourquoi: "Je ne vais pas te mentir : la natation est le premier tiers de ton Ironman (3,8 km) et tu ne l'as pas touchée en juillet. Ce mois-ci elle reste optionnelle pour laisser la place à la course — mais en septembre elle redevient non négociable. Chaque passage est un investissement.",
-          hint: "Ex : longueurs, sensations..." },
-      ],
-    },
-
-    /* ================= SEMAINE 2 (10-16 août) ================= */
-    {
-      num: 2,
-      theme: "Segments de 2 minutes",
-      focus:
-        "Les segments de course passent à 2 minutes, toujours à allure conversation. " +
-        "Si le pied a bronché en semaine 1 (douleur > 3 pendant, ou raideur matinale en hausse), " +
-        "on reste sur le format 1 min/2 min une semaine de plus — dis-le-moi dans le ressenti.",
-      seances: [
-        { id: "w2-c1", type: "course", titre: "Marche/Course — 7× (2'/2')", duree: "~40 min",
-          objectif: "7× (2 min course lente / 2 min marche). ~14 min courues.",
-          contenu: [
-            "5 min marche rapide",
-            "7× (2 min course lente / 2 min marche)",
-            "5 min marche",
-            "Toujours : petits pas rapides, tu peux parler, pied ≤ 3/10",
-          ],
-          pourquoi: "On double la durée des segments mais pas le volume total couru : la charge monte sur UN seul curseur à la fois.",
-          hint: "Ex : reps passées, douleur pied, essoufflement..." },
-        { id: "w2-c2", type: "course", titre: "Marche/Course — 7× (2'/2')", duree: "~40 min",
-          objectif: "Même format. 48 h après la précédente.",
-          contenu: ["5 min marche", "7× (2 min / 2 min)", "5 min marche"],
-          pourquoi: "Répétition à dose égale avant la prochaine montée. La régularité fait l'adaptation.",
-          hint: "Ex : douleur, sensations vs c1..." },
-        { id: "w2-c3", type: "course", titre: "Marche/Course — 8× (2'/1'30)", duree: "~40 min",
-          objectif: "8× (2 min course / 1 min 30 marche) — la récup se réduit un peu.",
-          contenu: ["5 min marche", "8× (2 min / 1 min 30)", "5 min marche", "Si le pied dit non : reste sur 7× (2'/2')"],
-          pourquoi: "Réduire la marche entre les segments rapproche doucement du courir-continu, sans allonger les impacts d'un coup.",
-          hint: "Ex : format tenu ?, douleur, fin de séance..." },
-
-        { id: "w2-upA", type: "muscu", titre: "Upper A", duree: "~60 min",
-          objectif: "Règle d'or, RIR 1-2.",
-          contenu: ["Upper A dans Hevy", "Gainage 5 min"],
-          pourquoi: "Rien de nouveau : la constance EST le programme.", hint: "Ex : charges..." },
-        { id: "w2-loA", type: "muscu", titre: "Lower A", duree: "~60 min",
-          objectif: "Progression + mollets excentriques.",
-          contenu: ["Lower A dans Hevy", "Mollets Rathleff : 3×12 unilatéral, serviette sous les orteils, tempo lent"],
-          pourquoi: "Toujours pas la veille d'une course.", hint: "Ex : charges, pied..." },
-        { id: "w2-upB", type: "muscu", titre: "Upper B", duree: "~60 min",
-          objectif: "Règle d'or.", contenu: ["Upper B dans Hevy"],
-          pourquoi: "Deuxième passage haut du corps.", hint: "Ex : charges..." },
-        { id: "w2-loB", type: "muscu", titre: "Lower B", duree: "~60 min",
-          objectif: "Progression + mollets.", contenu: ["Lower B dans Hevy", "Mollets Rathleff : 3×12 unilatéral, serviette sous les orteils"],
-          pourquoi: "48 h après le Lower A.", hint: "Ex : charges, fatigue 0-10..." },
-
-        { id: "w2-v1", type: "velo", titre: "Vélo Z2", duree: "60 min",
-          objectif: "Z2 stricte, cadence 85-90.",
-          contenu: ["5 min échauffement, 50 min Z2, 5 min calme", "3× 30 s cadence 100+ réparties"],
-          pourquoi: "Soutien aérobie sans impact.", hint: "Ex : distance, FC..." },
-        { id: "w2-v2", type: "velo", titre: "Vélo Z2 long", duree: "90 min",
-          objectif: "90 min Z2 — teste un apport solide (barre) à mi-séance.",
-          contenu: ["5 min échauffement, 80 min Z2, 5 min calme", "750 ml/h + 1 barre vers 45 min"],
-          pourquoi: "On rallonge le vélo ET on commence à entraîner l'alimentation en selle : une compétence d'Ironman à part entière, qui s'apprend tôt.",
-          hint: "Ex : distance, la barre est bien passée ?..." },
-
-        { id: "w2-nat", type: "natation", titre: "Natation technique (optionnelle)", duree: "~30 min", optionnel: true,
-          objectif: "500-700 m technique au feeling.",
-          contenu: ["Échauffement souple", "Répétitions de 33 m, repos larges", "Focus expiration + allonge"],
-          pourquoi: "Chaque passage entretient la sensation de l'eau — septembre te dira merci.",
-          hint: "Ex : longueurs, sensations..." },
-      ],
-    },
-
-    /* ================= SEMAINE 3 (17-23 août) ================= */
-    {
-      num: 3,
-      theme: "Le cap des 3 minutes",
-      focus:
-        "Segments de 3 minutes (~15-18 min courues par séance) : la plus grosse semaine de course " +
-        "du bloc. Le vélo goûte au tempo. Si tout passe proprement, le test de 20 minutes de la " +
-        "semaine prochaine sera une formalité. Le pied vote toujours avant chaque montée.",
-      seances: [
-        { id: "w3-c1", type: "course", titre: "Marche/Course — 5× (3'/2')", duree: "~35 min",
-          objectif: "5× (3 min course lente / 2 min marche).",
-          contenu: ["5 min marche", "5× (3 min / 2 min)", "5 min marche"],
-          pourquoi: "3 minutes en continu : ton corps apprend à trouver un rythme de croisière à l'intérieur du segment — c'est le début du « courir posé ».",
-          hint: "Ex : reps, douleur pied, essoufflement..." },
-        { id: "w3-c2", type: "course", titre: "Marche/Course — 6× (3'/2')", duree: "~40 min",
-          objectif: "6× (3 min / 2 min). 48 h après la précédente.",
-          contenu: ["5 min marche", "6× (3 min / 2 min)", "5 min marche"],
-          pourquoi: "+1 répétition : petite montée de volume à durée de segment égale.",
-          hint: "Ex : douleur, régularité de l'allure..." },
-        { id: "w3-c3", type: "course", titre: "Marche/Course — 5× (4'/2')", duree: "~40 min",
-          objectif: "5× (4 min / 2 min) — seulement si c1 et c2 sont passées sans alerte.",
-          contenu: ["5 min marche", "5× (4 min / 2 min)", "5 min marche", "Alerte pied → reste sur 3 min"],
-          pourquoi: "Dernière marche avant le test : 4 minutes continues × 5, c'est déjà 20 minutes de course dans la séance.",
-          hint: "Ex : format tenu, douleur, confiance pour le test..." },
-
-        { id: "w3-upA", type: "muscu", titre: "Upper A", duree: "~60 min",
-          objectif: "Règle d'or.", contenu: ["Upper A dans Hevy", "Gainage 5 min"],
-          pourquoi: "Semaine de pic aussi pour le haut du corps.", hint: "Ex : charges..." },
-        { id: "w3-loA", type: "muscu", titre: "Lower A", duree: "~60 min",
-          objectif: "Progression + mollets.", contenu: ["Lower A dans Hevy", "Mollets Rathleff : 3×12 unilatéral, serviette sous les orteils"],
-          pourquoi: "Surveille le pied : s'il monte au-dessus de 3/10 sur les mollets, allège.", hint: "Ex : charges, pied..." },
-        { id: "w3-upB", type: "muscu", titre: "Upper B", duree: "~60 min",
-          objectif: "Règle d'or.", contenu: ["Upper B dans Hevy"],
-          pourquoi: "Constance.", hint: "Ex : charges..." },
-        { id: "w3-loB", type: "muscu", titre: "Lower B", duree: "~60 min",
-          objectif: "Progression + mollets.", contenu: ["Lower B dans Hevy", "Mollets Rathleff : 3×12 unilatéral, serviette sous les orteils"],
-          pourquoi: "Pas la veille d'une course ni du vélo tempo.", hint: "Ex : charges, fatigue..." },
-
-        { id: "w3-v1", type: "velo", titre: "Vélo Z2 + tempo", duree: "75 min",
-          objectif: "Z2 avec 3× 5 min de tempo (soutenu mais pas à fond, FC ~150-160).",
-          contenu: [
-            "10 min échauffement",
-            "3× (5 min tempo / 5 min Z2 souple)",
-            "Complète en Z2 jusqu'à 75 min, 5 min calme",
-          ],
-          pourquoi: "Première touche d'intensité structurée du bloc : le tempo élève ton plafond pendant que la Z2 élargit la base. Dosé pour ne pas voler la récupération de la course.",
-          hint: "Ex : vitesses/watts en tempo, FC, sensations jambes..." },
-        { id: "w3-v2", type: "velo", titre: "Vélo Z2 long", duree: "90 min",
-          objectif: "90 min Z2, hydratation + barre.",
-          contenu: ["5 min échauffement, 80 min Z2, 5 min calme", "750 ml/h + 1 barre"],
-          pourquoi: "L'endurance profonde continue de s'empiler, semaine après semaine.",
-          hint: "Ex : distance, mental sur 90 min..." },
-
-        { id: "w3-nat", type: "natation", titre: "Natation technique (optionnelle)", duree: "~30 min", optionnel: true,
-          objectif: "500-700 m au feeling.",
-          contenu: ["Répétitions 33 m souples, focus technique"],
-          pourquoi: "Toujours optionnelle, toujours un bon investissement.",
-          hint: "Ex : longueurs..." },
-      ],
-    },
-
-    /* ================= SEMAINE 4 (24-30 août) ================= */
-    {
-      num: 4,
-      theme: "Assimilation + TESTS du mois",
-      focus:
-        "Volume course réduit pour arriver frais aux deux tests : COURSE (courir continu, cap 20 min) " +
-        "et VÉLO (20 min max). Deux jours d'écart minimum entre les deux, jamais au lendemain d'un Lower. " +
-        "Résultats à remplir dans la page « Tests du bloc », puis export du .json pour ton coach.",
-      seances: [
-        { id: "w4-c1", type: "course", titre: "Course assimilation — 6× (2'/2')", duree: "~35 min",
-          objectif: "Format facile : on garde le geste, on ne creuse pas la fatigue.",
-          contenu: ["5 min marche", "6× (2 min / 2 min)", "5 min marche"],
-          pourquoi: "Semaine allégée en course : les tests se réussissent frais, pas fatigué.",
-          hint: "Ex : douleur, légèreté..." },
-        { id: "w4-c2", type: "course", titre: "Course assimilation — 4× (3'/2')", duree: "~30 min",
-          objectif: "Courte et souple. Pas dans les 48 h avant le test course.",
-          contenu: ["5 min marche", "4× (3 min / 2 min)", "5 min marche"],
-          pourquoi: "Dernier rappel du geste avant le test.",
-          hint: "Ex : sensations..." },
-        { id: "w4-tc", type: "test", titre: "TEST — Course continue (cap 20 min)", duree: "~40 min",
-          objectif: "Courir en continu à allure conversation, aussi longtemps que possible, STOP à 20 min.",
-          contenu: [
-            "10 min échauffement : marche rapide + 3× 1 min de course facile",
-            "TEST : cours en continu, allure conversation, jusqu'à 20 min MAXIMUM",
-            "Tu t'arrêtes avant si : douleur pied > 3/10, ou tu n'arrives plus à parler",
-            "5 min marche pour finir",
-            "Note : durée tenue, distance, FC moyenne, douleur pied → page Tests",
-          ],
-          pourquoi: "Ton premier test course : la référence de départ des deux ans à venir. L'objectif n'est PAS la vitesse — c'est la durée tenue à allure aisée. En juin tu étais mort après 300 m ; on mesure le chemin parcouru.",
-          hint: "Durée tenue, distance, FC, douleur, gestion..." },
-
-        { id: "w4-upA", type: "muscu", titre: "Upper A + relevé de charges", duree: "~60 min",
-          objectif: "Séance normale, et note tes 2-3 meilleures séries → page Tests.",
-          contenu: ["Upper A dans Hevy", "Reporte tes meilleures séries (exo × kg × reps) dans la page Tests"],
-          pourquoi: "Tes données Hevy de cette semaine SONT le test muscu.", hint: "Ex : meilleures séries..." },
-        { id: "w4-loA", type: "muscu", titre: "Lower A + relevé de charges", duree: "~60 min",
-          objectif: "Séance normale + relevé. Jamais la veille d'un test.",
-          contenu: ["Lower A dans Hevy", "Relevé des meilleures séries → page Tests", "Mollets Rathleff 3×12"],
-          pourquoi: "Test bas du corps. Garde des jambes correctes pour les tests course/vélo.", hint: "Ex : meilleures séries..." },
-        { id: "w4-upB", type: "muscu", titre: "Upper B", duree: "~60 min",
-          objectif: "Séance normale.", contenu: ["Upper B dans Hevy"],
-          pourquoi: "Le haut du corps ne gêne pas les tests — séance normale.", hint: "Ex : charges..." },
-        { id: "w4-loB", type: "muscu", titre: "Lower B allégé", duree: "~45 min",
-          objectif: "-1 série par exercice, charges normales.",
-          contenu: ["Lower B dans Hevy, une série de moins partout", "Mollets Rathleff 3×12 léger"],
-          pourquoi: "On entretient sans creuser : les jambes servent aux tests cette semaine.", hint: "Ex : sensations..." },
-
-        { id: "w4-v1", type: "velo", titre: "Vélo Z2 souple", duree: "45 min",
-          objectif: "Récupération active entre les tests.",
-          contenu: ["45 min Z2 très souple, cadence fluide"],
-          pourquoi: "Fait tourner les jambes sans fatigue — idéal la veille ou le lendemain d'un test.",
-          hint: "Ex : sensations..." },
-        { id: "w4-tv", type: "test", titre: "TEST — 20 min vélo max", duree: "~40 min",
-          objectif: "20 min à l'effort maximal SOUTENABLE et régulier : la plus grande distance possible.",
-          contenu: [
-            "10 min échauffement progressif avec 2× 30 s appuyés",
-            "3 min tranquille",
-            "TEST : 20 min à fond régulier — les 5 premières minutes doivent sembler « trop faciles »",
-            "Note distance, vitesse moyenne, FC moyenne, watts si affichés → page Tests",
-            "10 min retour au calme",
-          ],
-          pourquoi: "Le test de 20 min estime ton seuil (≈ 95 % de la moyenne) et calibrera tes zones vélo du Bloc 3. Référence de juin : ~26 km/h. Deux jours minimum après le test course.",
-          hint: "Distance, vitesse moy., FC, watts, gestion..." },
-
-        { id: "w4-nat", type: "natation", titre: "Natation souple (optionnelle)", duree: "~30 min", optionnel: true,
-          objectif: "Nage plaisir. Si tu as nagé 2× ce mois-ci : fais le 200 m chrono (page Tests).",
-          contenu: ["500-600 m au feeling, ou test 200 m si tu t'en sens"],
-          pourquoi: "Récupération active + éventuelle référence nage pour septembre.",
-          hint: "Ex : longueurs ou chrono 200 m..." },
-
-        { id: "w4-bilan", type: "test", titre: "BILAN du bloc + export", duree: "~20 min",
-          objectif: "Pesée, mensurations, bilan écrit, export du fichier pour ton coach.",
-          contenu: [
-            "Pèse-toi à jeun + tour de taille au nombril → page Tests",
-            "Remplis le bilan libre (ce qui a marché / coincé, l'état du pied, la natation : on en parle)",
-            "Tableau de bord → « Exporter mes données » → envoie-moi le .json",
-            "Repos complet ce jour-là. Mérité.",
-          ],
-          pourquoi: "Avec ce fichier je calibre le Bloc 3 : allures course sur ton test, zones vélo sur tes 20 min, et le retour structuré de la natation.",
-          hint: "Ton bilan libre du mois..." },
-      ],
-    },
-  ],
+    "Quatorze semaines, une séance par jour, jours fixes : 3 muscu (épaules et dos en premier), " +
+    "2 vélos Z2 (+ 15-20 min après chaque Upper), 2 marche/course avec le pied qui vote, 1 natation. " +
+    "Nutrition : sèche lente à 2 100 kcal et 150 g de protéines, ajustée toutes les 2 semaines sur la " +
+    "moyenne de poids 7 jours (cible : −0,3 à −0,45 kg/semaine), semaines 6 et 12 à maintenance. " +
+    "Départ 66 kg / 18,9 % (11 sept.) ; cible 20 décembre : ~61 kg, abdos hauts visibles, taille −6 cm. " +
+    "Règle absolue : sommeil ≥ 7 h 30, sinon la sèche mange du muscle.",
+  semaines: PLAN.map(_semaine),
 };
 
 /* ---------- Règles d'agencement de la semaine ----------
-   Le planning est LIBRE : ces règles aident Samy à placer ses
-   séances intelligemment. Affichées (repliées) sur la page programme. */
+   Affichées (repliées) sur la page programme. */
 const AGENCEMENT = [
-  "<strong>Jamais 2 courses sur 2 jours consécutifs</strong> : minimum 48 h entre deux séances de course — c'est le délai de réparation des tissus du pied.",
-  "<strong>Course et Lower : jamais le même jour</strong>, et évite la course le lendemain d'un Lower (mollets frais = technique propre = pied protégé).",
-  "<strong>Deux séances le même jour ? OK</strong> : course le matin + Upper plus tard, ou muscu + vélo court. Évite Lower + vélo long le même jour.",
-  "<strong>Sépare Upper A/Upper B et Lower A/Lower B</strong> d'au moins 2 jours chacun.",
-  "<strong>Garde 1 jour full repos</strong> par semaine (marche tranquille OK).",
-  "<strong>Douleur pied > 3/10 pendant une course</strong> : stop, remplace par du vélo (statut « ≈ adapté »), raconte-moi. Raideur matinale en hausse 2 jours de suite : saute la course suivante.",
-  "<strong>Semaine 4</strong> : test course et test vélo à 2 jours d'écart minimum, frais, jamais le lendemain d'un Lower.",
-  "<strong>La natation optionnelle</strong> se glisse n'importe quand (créneau 8h-10h au Neptunium). Séance impossible ? Statut « ✗ Pas pu » + raison — je lis tout.",
+  "<strong>Une séance par jour, jours fixes</strong> : Lun Upper A · Mar course · Mer Lower · Jeu vélo · Ven Upper B · Sam natation · Dim course. Tu peux décaler, mais garde les écarts ci-dessous.",
+  "<strong>48 h entre deux courses</strong>, et jamais la veille ni le lendemain du Lower (mollets frais = technique propre = pied protégé).",
+  "<strong>Pied > 3/10 pendant une course</strong> : stop au milieu de la séance, tu rentres en marchant, statut « adapté » + raison. Raideur matinale en hausse 2 jours de suite : la course suivante devient 90 min de vélo Z2.",
+  "<strong>Muscu puis vélo, jamais l'inverse</strong> : les 15-20 min de Z2 après les Upper se font sur les vélos de la salle, en sortie de séance. Pressé ? C'est la première chose à sauter.",
+  "<strong>Une seule intensité</strong> : le tempo du jeudi (3 × 5 min) une semaine sur deux à partir de la semaine 5. Aucune zone 4 improvisée dans ce bloc.",
+  "<strong>Semaine minimale</strong> si la vie s'en mêle : Upper A, Lower, Upper B, le vélo du jeudi, une course. Cinq jours sur sept, à tenir 90 % du temps.",
+  "<strong>Nutrition</strong> : 2 100 kcal, 150 g de protéines, 60 g de lipides, le reste en glucides. Pesée chaque matin à jeun ; toutes les 2 semaines : perte < 0,25 kg/sem → −100 kcal, perte > 0,5 → +100. Semaines 6 et 12 : ~2 400 kcal, entraînement inchangé.",
+  "<strong>Chaque matin</strong> : poids, calories et protéines de la veille (30 s), douleur pied au réveil. Tour de taille au nombril le lundi. Photo toutes les 4 semaines, même lumière.",
 ];
 
 /* ---------- TESTS du bloc : définitions ----------
-   Affichés + saisis dans tests.html. Même logique modulaire. */
+   Affichés + saisis dans tests.html. */
 const TESTS = [
   {
-    id: "test-course", titre: "Course continue — cap 20 min", quand: "Semaine 4 — frais, jamais après un Lower ou une autre course",
-    protocole: "10 min d'échauffement (marche rapide + 3×1 min course facile), puis course CONTINUE à allure conversation, aussi longtemps que possible, arrêt obligatoire à 20 min. Stop avant si douleur pied > 3/10 ou impossibilité de parler.",
-    cible: "Premier relevé course de ta vie : pas de chrono à battre. Tenir 8-10 min en continu serait déjà une vraie progression vs les 300 m de juin ; 20 min = excellent. La douleur pied prime sur tout : t'arrêter à cause d'elle reste un test réussi (on a mesuré).",
+    id: "test-depart", titre: "Mesures de départ", quand: "Lundi 14 septembre, à jeun",
+    protocole: "Pesée à jeun au réveil, tour de taille au niveau du nombril (détendu, expiration naturelle), photo de face et de profil dans une lumière que tu pourras reproduire.",
+    cible: "Référence du bloc. Le 11 septembre : 66 kg, 18,9 % (balance). Le % de la balance a une erreur de 3 à 5 points : c'est le poids moyen sur 7 jours et le tour de taille qui comptent.",
+    champs: [
+      { cle: "poids", label: "Poids à jeun (kg)", type: "number" },
+      { cle: "taille", label: "Tour de taille (cm)", type: "number" },
+      { cle: "photo", label: "Photo faite ? (oui / non, où elle est rangée)", type: "text" },
+      { cle: "notes", label: "Remarques", type: "textarea" },
+    ],
+  },
+  {
+    id: "test-course", titre: "Course continue — cap 30 min", quand: "Semaine 14, mardi — frais, jamais le lendemain du Lower",
+    protocole: "10 min d'échauffement (marche rapide + 3 × 1 min course facile), puis course CONTINUE à allure conversation, aussi longtemps que possible, arrêt obligatoire à 30 min. Stop avant si douleur pied > 3/10 ou impossibilité de parler.",
+    cible: "Tenir 20 min = objectif du bloc atteint ; 30 min = excellent. La douleur pied prime sur tout : t'arrêter à cause d'elle reste un test réussi (on a mesuré).",
     champs: [
       { cle: "duree", label: "Durée courue en continu (min:s)", type: "text" },
       { cle: "distance", label: "Distance (km)", type: "number" },
@@ -383,9 +333,9 @@ const TESTS = [
     ],
   },
   {
-    id: "test-velo", titre: "20 min vélo — effort max", quand: "Semaine 4 — 2 jours min. après le test course",
+    id: "test-velo", titre: "20 min vélo — effort max", quand: "Semaine 14, jeudi — 2 jours après le test course",
     protocole: "10 min d'échauffement, puis 20 min à l'effort maximal soutenable et RÉGULIER. Noter tout ce que la machine et la montre affichent.",
-    cible: "Référence de juin : ~26 km/h. Égaler = bien, dépasser = excellent. Ce test calibre les zones vélo du Bloc 3 (seuil ≈ 95 % de la moyenne des 20 min).",
+    cible: "Référence de juin : 14 km en 32 min (~26 km/h). Égaler à 61 kg = bien, dépasser = excellent. Ce test calibre les zones vélo de 2027 (seuil ≈ 95 % de la moyenne des 20 min).",
     champs: [
       { cle: "distance", label: "Distance (km)", type: "number" },
       { cle: "vitesse", label: "Vitesse moy. (km/h)", type: "number" },
@@ -395,40 +345,40 @@ const TESTS = [
     ],
   },
   {
-    id: "test-muscu", titre: "Relevé de charges (Hevy)", quand: "Semaine 4 — tes séances Upper/Lower normales",
-    protocole: "Pas de test séparé : reporte ici tes 2-3 meilleures séries Upper et Lower de la semaine 4 (exercice × charge × reps).",
-    cible: "Progression continue vs juillet : la règle d'or fait son travail, on la mesure bloc après bloc.",
-    champs: [
-      { cle: "upper", label: "Meilleures séries Upper (exo × kg × reps)", type: "textarea" },
-      { cle: "lower", label: "Meilleures séries Lower (exo × kg × reps)", type: "textarea" },
-    ],
-  },
-  {
-    id: "test-nage", titre: "200 m nage chrono (optionnel)", quand: "Semaine 4 — seulement si tu as nagé au moins 2× dans le mois",
-    protocole: "Échauffement complet (6×33 m progressifs), 3 min de repos, puis 6×33 m enchaînées (198 m) chronométrées à l'Apple Watch.",
-    cible: "Si tu ne l'as pas fait, aucun souci ce mois-ci — mais ce sera LA priorité de septembre. Pour situer : 4:30-5:00 serait très correct après des années d'arrêt.",
+    id: "test-nage", titre: "200 m nage chrono", quand: "Semaine 14, samedi",
+    protocole: "Échauffement complet (6 × 33 m progressifs), 3 min de repos, puis 6 × 33 m enchaînées (198 m) chronométrées à l'Apple Watch.",
+    cible: "Première référence nage de ta vie. 4:30-5:00 serait très correct après des années d'arrêt.",
     champs: [
       { cle: "chrono", label: "Chrono (mm:ss)", type: "text" },
       { cle: "ressenti", label: "Sensations", type: "textarea" },
     ],
   },
   {
-    id: "test-corps", titre: "Poids & mensurations", quand: "Dernier jour du bloc (30 août), à jeun",
-    protocole: "Pesée à jeun au réveil + tour de taille au niveau du nombril, détendu.",
-    cible: "Départ juin : 66 kg, ~18 % MG. En recomposition, le poids peut peu bouger alors que tu progresses : tour de taille et miroir comptent autant que la balance.",
+    id: "test-muscu", titre: "Relevés de charges (Hevy)", quand: "Semaines 4, 8, 12 et 14",
+    protocole: "Pas de test séparé : reporte ici tes 2-3 meilleures séries Upper et Lower de la semaine (exercice × charge × reps × reps en réserve). Une ligne par relevé, datée.",
+    cible: "En sèche, garder ses charges = gagner. Élévations latérales, tirage et rowing qui montent = le bloc fonctionne.",
     champs: [
-      { cle: "poids", label: "Poids à jeun (kg)", type: "number" },
-      { cle: "taille", label: "Tour de taille (cm)", type: "number" },
-      { cle: "notes", label: "Miroir, énergie, remarques", type: "textarea" },
+      { cle: "upper", label: "Meilleures séries Upper (date · exo × kg × reps)", type: "textarea" },
+      { cle: "lower", label: "Meilleures séries Lower (date · exo × kg × reps)", type: "textarea" },
     ],
   },
   {
-    id: "test-bilan", titre: "Bilan libre du bloc", quand: "Dernier jour du bloc (30 août)",
-    protocole: "Écris librement : ce qui a marché, ce qui a coincé, l'état de ton pied sur le mois, les Clifton, la natation (on doit en parler), ta motivation.",
-    cible: "Ce texte + ton export .json = tout ce dont j'ai besoin pour construire le Bloc 3 sur mesure.",
+    id: "test-corps", titre: "Poids, tour de taille & photo de fin", quand: "Dimanche 20 décembre, à jeun",
+    protocole: "Pesée à jeun au réveil + tour de taille au nombril, détendu. Photo dans la même lumière que le 14 septembre.",
+    cible: "Départ : 66 kg / 18,9 %. Cible : ~61 kg, taille −6 cm, abdos hauts visibles au repos. Le critère final reste le miroir : satisfait ou pas.",
     champs: [
-      { cle: "bilan", label: "Ton bilan du mois", type: "textarea" },
-      { cle: "pied", label: "État du pied : douleur moyenne du mois (0-10) et tendance", type: "text" },
+      { cle: "poids", label: "Poids à jeun (kg)", type: "number" },
+      { cle: "taille", label: "Tour de taille (cm)", type: "number" },
+      { cle: "notes", label: "Miroir, énergie, faim, remarques", type: "textarea" },
+    ],
+  },
+  {
+    id: "test-bilan", titre: "Bilan libre du bloc", quand: "Dimanche 20 décembre",
+    protocole: "Écris librement : ce qui a marché, ce qui a coincé, le pied sur 14 semaines, la faim, le sommeil, la natation, la motivation.",
+    cible: "Ce texte + ton export .json = tout ce dont j'ai besoin pour construire janvier (régime inversé, natation 2×, zones vélo).",
+    champs: [
+      { cle: "bilan", label: "Ton bilan du bloc", type: "textarea" },
+      { cle: "pied", label: "État du pied : douleur moyenne du bloc (0-10) et tendance", type: "text" },
     ],
   },
 ];
@@ -436,14 +386,15 @@ const TESTS = [
 /* ---------- JOURNAL : champs quotidiens ----------
    Pour ajouter/enlever un champ du journal : modifier UNIQUEMENT cette liste. */
 const JOURNAL_CHAMPS = [
-  { cle: "poids", label: "Poids (kg)", type: "number", largeur: "petit" },
-  { cle: "pas", label: "Pas", type: "number", largeur: "petit" },
-  { cle: "eau", label: "Eau (L)", type: "number", largeur: "petit" },
-  { cle: "electrolytes", label: "Électrolytes (nb)", type: "number", largeur: "petit" },
-  { cle: "calories", label: "Calories (kcal)", type: "number", largeur: "petit" },
-  { cle: "proteines", label: "Protéines (g)", type: "number", largeur: "petit" },
-  { cle: "sommeil", label: "Sommeil (h)", type: "number", largeur: "petit" },
+  { cle: "poids", label: "Poids à jeun (kg)", type: "number", largeur: "petit" },
+  { cle: "calories", label: "Calories de la veille (kcal)", type: "number", largeur: "petit" },
+  { cle: "proteines", label: "Protéines de la veille (g)", type: "number", largeur: "petit" },
   { cle: "pied_douleur", label: "Douleur pied au réveil (0-10)", type: "number", largeur: "petit" },
   { cle: "pied", label: "Rééduc pied faite (5 min)", type: "checkbox" },
-  { cle: "ressenti", label: "Ressenti / nourriture / notes libres", type: "textarea" },
+  { cle: "taille", label: "Tour de taille (cm, le lundi)", type: "number", largeur: "petit" },
+  { cle: "sommeil", label: "Sommeil (h)", type: "number", largeur: "petit" },
+  { cle: "eau", label: "Eau (L)", type: "number", largeur: "petit" },
+  { cle: "pas", label: "Pas (facultatif)", type: "number", largeur: "petit" },
+  { cle: "electrolytes", label: "Électrolytes (nb)", type: "number", largeur: "petit" },
+  { cle: "ressenti", label: "Ressenti / faim / nourriture / notes libres", type: "textarea" },
 ];
