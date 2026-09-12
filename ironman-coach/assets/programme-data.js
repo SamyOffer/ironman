@@ -454,6 +454,16 @@ const ROUTINE_POSTURE = {
       pourquoi: "Les fessiers travaillent en fin d'amplitude, là où ils sont les plus faibles chez quelqu'un d'assis toute la journée. Version chargée le mercredi au Lower : le hip thrust.",
     },
   ],
+  autotest: {
+    titre: "Avant tout : lequel des trois est le tien ?",
+    intro: "L'arrondi du bas-ventre a trois causes possibles, et elles ne se soignent pas pareil. Deux minutes devant un miroir suffisent à savoir laquelle domine chez toi.",
+    tests: [
+      "<strong>Test 1 — la position (30 s).</strong> De profil devant un miroir, debout relâché : regarde ton bas-ventre. Puis ramène les côtes au-dessus du bassin, enroule le bassin, serre légèrement les fessiers et expire à fond. Regarde à nouveau. <em>L'arrondi s'aplatit nettement</em> → la position pèse lourd, et la routine + les exercices en salle vont se voir. <em>Il ne bouge presque pas</em> → c'est du gras ou du ballonnement, la routine ne changera pas la photo.",
+      "<strong>Test 2 — le ballonnement (1 jour).</strong> Photo de profil le matin à jeun, puis la même photo le soir, même lumière, même position. Une grosse différence entre les deux = distension digestive, pas du gras (le gras ne bouge pas en 12 h). Tu es intolérant au gluten ET au lactose : un écart caché (sauce, whey non isolate, trace de blé) distend le bas-ventre pour la journée. Note dans le journal ce que tu as mangé les jours où c'est pire.",
+      "<strong>Test 3 — le gras.</strong> C'est la sèche qui répond, en semaines. Chez l'homme, le bas-ventre est le dépôt qui part en DERNIER : il compte plus de récepteurs alpha-2, qui freinent la libération des graisses, que de récepteurs bêta, qui l'activent. D'où les abdos qui apparaissent du haut vers le bas. Ordre de grandeur : le haut des abdos se dessine vers 14-15 %, le bas-ventre vers 11-13 %. Tu pars de 18,9 %.",
+    ],
+    conclusion: "À 18,9 %, le gras est presque toujours le premier contributeur, la position le deuxième, le ballonnement le troisième mais parfois spectaculaire. Et le lien marche dans les deux sens : un ventre qui pousse en avant tire lui aussi le bassin en bascule antérieure. Ce n'est donc pas « le bassin qui cause le ventre », c'est un ensemble où ta sèche agit sur les trois.",
+  },
   ailleurs: [
     "<strong>En salle (déjà dans tes séances)</strong> : roulette abdominale le lundi, hip thrust le mercredi, relevés de genoux bassin enroulé le vendredi. Ces trois-là pèsent plus lourd que la routine du matin.",
     "<strong>En courant</strong> : côtes basses, bassin sous les côtes, petits pas rapides. Si le bas du dos tire, tu raccourcis les segments — c'est le même signal d'alarme que le pied.",
@@ -465,12 +475,18 @@ const ROUTINE_POSTURE = {
 /* Rendu HTML de la routine — utilisé par le guide (site complet) ET par
    l'aide du site simple, pour que le contenu n'existe qu'à un seul endroit. */
 function htmlRoutinePosture(compact) {
+  const a = ROUTINE_POSTURE.autotest;
+  const autotest = compact ? "" :
+    `<div class="card"><h3 style="margin-top:0">${a.titre}</h3><p>${a.intro}</p>
+       <ul>${a.tests.map(t => `<li>${t}</li>`).join("")}</ul>
+       <p><strong>${a.conclusion}</strong></p></div>`;
   const ex = ROUTINE_POSTURE.exercices.map((e, i) => compact
     ? `<li><b>${i + 1}. ${e.nom}</b> — ${e.dose}<br><span class="rp-etapes">${e.etapes[1]}</span></li>`
     : `<div class="card"><h3 style="margin-top:0">${i + 1}. ${e.nom} <span class="badge muscu">${e.dose}</span></h3>
          <ul>${e.etapes.map(t => `<li>${t}</li>`).join("")}</ul>
          <details><summary>Pourquoi cet exercice ?</summary><p>${e.pourquoi}</p></details></div>`).join("");
-  if (compact) return `<p><b>Routine posture — 5 min/jour.</b> ${ROUTINE_POSTURE.quand}</p><ol class="rp">${ex}</ol>`;
-  return `<div class="box imp"><strong>Quand ?</strong> ${ROUTINE_POSTURE.quand}</div>${ex}
+  if (compact) return `<p><b>Routine posture — 5 min/jour.</b> ${ROUTINE_POSTURE.quand}</p><ol class="rp">${ex}</ol>
+    <p class="rp-etapes">Bas-ventre arrondi : fais le test du miroir (côtes basses + bassin enroulé + expiration) — s'il s'aplatit, c'est la position ; sinon c'est le gras ou un ballonnement. Détail dans le Guide du coach.</p>`;
+  return `${autotest}<div class="box imp"><strong>Quand ?</strong> ${ROUTINE_POSTURE.quand}</div>${ex}
     <div class="card"><ul>${ROUTINE_POSTURE.ailleurs.map(t => `<li>${t}</li>`).join("")}</ul></div>`;
 }
