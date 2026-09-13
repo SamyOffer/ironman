@@ -110,10 +110,13 @@ Les séances non prévues se loggent via « + Ajouter une séance libre »
   `REGISTRE` d'export.js pour que l'Excel reste lisible).
 - Le bloc n'est plus limité à 4 semaines : `datesDuBloc()` suit
   `BLOC.semaines.length`, plus aucun `dates[27]` en dur.
-- Routine posture (bascule antérieure du bassin) : données dans
-  `ROUTINE_POSTURE` + rendu par `htmlRoutinePosture(compact)` — appelé par
-  `guide.html` (version longue) et par l'aide du site simple (version
-  compacte), donc le contenu n'existe qu'à un seul endroit. Suivi par la case
+- Routines quotidiennes : `ROUTINE_PIED` (fasciite — étirement spécifique du
+  fascia DiGiovanni, balle, mollets, orteils) et `ROUTINE_POSTURE` (bascule
+  antérieure — dead bug, fente bassin enroulé, pont fessier). Même forme
+  d'objet, rendues par `htmlRoutine(R, compact)` : version longue dans
+  `guide.html`, version mobile dans la section dépliable « Mes exos
+  quotidiens » du site simple (sous le journal, bouton « voir les exos »).
+  Le contenu n'existe donc qu'à un seul endroit. Suivi par la case
   `journal.<date>.posture` (2e bouton du journal + graphique hebdo).
   Les exercices correspondants sont DANS les séances : roulette abdominale
   (Upper A), hip thrust (Lower), relevés de genoux bassin enroulé (Upper B).

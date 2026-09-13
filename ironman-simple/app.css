@@ -182,7 +182,22 @@ dialog p, dialog li { font-size: .92rem; }
   .details .grille .pleine { grid-column: 1 / -1; }
 }
 
-/* ---------- Routine posture (aide) ---------- */
-.rp { margin: 6px 0 0; padding-left: 20px; }
-.rp li { margin-bottom: 6px; }
+/* ---------- Routines quotidiennes (pied & posture) ---------- */
+/* L'en-tête est collant : on décale la cible du scroll pour ne pas passer dessous. */
+.section { scroll-margin-top: 86px; }
+.routine + .routine { margin-top: 22px; border-top: 1px solid var(--bord); padding-top: 18px; }
+.routine h4 { margin: 0 0 6px; font-size: 1.02rem; }
+.rp-quand { margin: 0 0 12px; color: var(--texte-2); font-size: .9rem; line-height: 1.5; }
+.rp { margin: 0; padding-left: 22px; }
+.rp > li { margin-bottom: 14px; }
+.rp-dose { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px;
+           background: var(--bord); color: var(--texte-2); font-size: .78rem; font-weight: 600;
+           white-space: nowrap; }
+.rp-pas { margin: 6px 0 0; padding-left: 18px; color: var(--texte-2); font-size: .9rem; line-height: 1.55; }
+.rp-pas li { margin-bottom: 3px; }
+.rp-plus { margin-top: 10px; }
+.rp-plus summary { cursor: pointer; color: var(--accent, #4a8cff); font-size: .88rem; }
+.rp-plus ul { padding-left: 18px; font-size: .9rem; line-height: 1.55; }
 .rp-etapes { color: var(--texte-2); font-size: .9em; }
+.lien-routines { grid-column: 1 / -1; justify-self: start; background: none; border: 0;
+                 color: var(--accent, #4a8cff); font-size: .85rem; padding: 2px 0; cursor: pointer; }

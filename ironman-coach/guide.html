@@ -118,8 +118,20 @@
       quelqu'un d'assis toute la journée — utile pour courir et pour pédaler, bascule ou pas.
     </div>
 
-    <h3>La routine quotidienne — 5 minutes</h3>
+    <h3>La routine posture — 5 minutes par jour</h3>
     <div id="routine-posture"></div>
+
+    <h2>Ton pied — la routine quotidienne, enfin écrite</h2>
+    <div class="box def">
+      <strong>Deux protocoles, deux moments</strong>
+      L'étirement spécifique du fascia (DiGiovanni 2003, confirmé à deux ans) se fait
+      <strong>avant de poser le pied par terre le matin</strong> : c'est lui qui attaque la raideur
+      au réveil que tu notes chaque jour. Les élévations mollet avec serviette sous les orteils
+      (Rathleff 2015) se font en salle, au Lower : c'est la partie la plus efficace du traitement,
+      et le seul essai qui bat l'étirement seul à trois mois. Les deux se complètent, aucun ne
+      remplace l'autre.
+    </div>
+    <div id="routine-pied"></div>
 
     <h2>Course à pied — le pied vote avant chaque montée</h2>
     <div class="box trap">
@@ -128,7 +140,7 @@
       Douleur &gt; 3/10 pendant → stop <em>au milieu de la séance</em>, tu rentres en marchant
       (le 13 août à 8/10 n'aurait pas dû être terminé). Douleur &gt; 2/10 le lendemain → tu répètes
       le format une semaine de plus au lieu de monter. Raideur matinale en hausse deux jours de
-      suite → la course suivante devient 90 min de vélo Z2. Rééduc quotidienne 5 min et mollets
+      suite → la course suivante devient 90 min de vélo Z2. Rééduc quotidienne 5 min (détaillée plus bas) et mollets
       Rathleff au Lower : ça continue tout le bloc.
     </div>
     <div class="card">
@@ -200,6 +212,9 @@
 <script src="assets/sync-fichier.js"></script>
 <script src="assets/programme-data.js"></script>
 <script src="assets/main.js"></script>
-<script>document.getElementById("routine-posture").innerHTML = htmlRoutinePosture(false);</script>
+<script>
+  document.getElementById("routine-posture").innerHTML = htmlRoutine(ROUTINE_POSTURE, false);
+  document.getElementById("routine-pied").innerHTML = htmlRoutine(ROUTINE_PIED, false);
+</script>
 </body>
 </html>

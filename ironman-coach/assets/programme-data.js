@@ -418,6 +418,7 @@ const JOURNAL_CHAMPS = [
    cambrure. Le reste du « look » viendra de la sèche : à 13 % de gras, le
    ventre ne pousse plus en avant et l'arrondi du bas-ventre disparaît. */
 const ROUTINE_POSTURE = {
+  titre: "Posture", icone: "🧍", duree: "5 min",
   quand: "Tous les jours, le matin ou le soir, collée à ta rééduc pied (5 min de plus, une seule habitude). Jamais dans les 2 h avant le Lower : un étirement long réduit un peu la force sur le moment.",
   exercices: [
     {
@@ -472,21 +473,96 @@ const ROUTINE_POSTURE = {
   ],
 };
 
+/* ---------- ROUTINE PIED — 5 min, tous les jours ----------
+   Fasciite plantaire. Deux protocoles validés, chacun à son moment :
+   - DiGiovanni 2003/2006 (JBJS) : étirement SPÉCIFIQUE du fascia, supérieur
+     à l'étirement du mollet seul sur la douleur chronique du talon. 10 s ×
+     10, 3 fois par jour, le premier AVANT de poser le pied le matin.
+   - Rathleff 2015 (Scand J Med Sci Sports) : élévations mollet unilatérales,
+     serviette roulée sous les orteils, un jour sur deux — meilleurs
+     résultats à 3 mois que l'étirement seul. C'est la partie « salle »,
+     elle est dans tes séances de muscu, pas ici. */
+const ROUTINE_PIED = {
+  titre: "Pied", icone: "🦶", duree: "5 min",
+  quand: "Le premier étirement AVANT de poser le pied par terre le matin, encore dans le lit — c'est le moment qui compte le plus, et c'est lui qui fait baisser la raideur au réveil que tu notes chaque jour. Puis deux autres fois dans la journée, et le bloc massage + mollets une fois, quand tu veux.",
+  exercices: [
+    {
+      nom: "Étirement du fascia plantaire",
+      dose: "10 × 10 s, 3 fois par jour",
+      etapes: [
+        "Assis, croise la jambe douloureuse sur l'autre genou",
+        "Avec la main du même côté, attrape la base des orteils SOUS le pied",
+        "Tire les orteils vers le tibia jusqu'à sentir l'étirement sous la voûte",
+        "Avec l'autre main, palpe la voûte : tu dois sentir le fascia tendu comme une corde — sinon tu tires trop peu",
+        "Tiens 10 s, relâche, recommence 10 fois",
+        "1re série AVANT le premier pas du matin, dans le lit. Les deux autres dans la journée, idéalement après être resté assis longtemps",
+      ],
+      pourquoi: "C'est l'exercice le mieux validé de ta rééduc : dans l'essai de DiGiovanni, l'étirement spécifique du fascia bat l'étirement du tendon d'Achille sur la douleur chronique du talon, et l'avantage tenait encore à deux ans. Le timing n'est pas un détail : la nuit, le fascia se raccourcit, et les premiers pas le réétirent brutalement — d'où la douleur au réveil. Tu l'étires doucement AVANT de te lever, tu supprimes ce micro-traumatisme quotidien.",
+    },
+    {
+      nom: "Balle sous la voûte",
+      dose: "1 à 2 min par pied",
+      etapes: [
+        "Assis, roule une balle (tennis, balle de massage, ou petite bouteille sortie du congélateur) sous la voûte",
+        "Pression modérée, du talon vers les orteils, lentement",
+        "Insiste là où c'est sensible, sans jamais dépasser 4/10 de douleur",
+        "La bouteille congelée est intéressante le soir après une séance de course",
+      ],
+      pourquoi: "Effet antalgique, pas curatif : ça rend le pied plus souple pour l'étirement qui suit et ça calme après les impacts. C'est un complément, pas le traitement.",
+    },
+    {
+      nom: "Mollets : gastrocnémien puis soléaire",
+      dose: "2 × 30 s chacun, par jambe",
+      etapes: [
+        "Face au mur, mains en appui, jambe à étirer tendue en arrière, talon au sol → gastrocnémien",
+        "Même position mais genou arrière FLÉCHI, talon toujours au sol → soléaire",
+        "Étirement dans le mollet, pas dans le talon. Jamais en à-coups",
+      ],
+      pourquoi: "Un mollet raide augmente la tension sur le fascia à chaque pas, parce que le tendon d'Achille et le fascia sont en continuité mécanique. Les deux positions sont nécessaires : jambe tendue et genou fléchi n'étirent pas le même muscle.",
+    },
+    {
+      nom: "Orteils : serviette et écartements",
+      dose: "2 × 15 par pied",
+      etapes: [
+        "Assis, pied à plat sur une serviette : agrippe et fais glisser la serviette vers toi avec les orteils seulement",
+        "Puis écarte les orteils au maximum sans bouger le pied, tiens 3 s, relâche — avec un élastique autour des orteils si tu en as un",
+        "Le talon reste au sol, la cheville ne bouge pas",
+      ],
+      pourquoi: "Les petits muscles du pied soutiennent la voûte en même temps que le fascia. Plus ils sont forts, moins le fascia encaisse. C'est du long terme, pas un soulagement immédiat.",
+    },
+  ],
+  ailleurs: [
+    "<strong>En salle, le mercredi au Lower</strong> : élévations mollet unilatérales, serviette roulée sous les orteils, tempo lent (3 s de montée, 2 s de pause en haut, 3 s de descente). C'est le protocole Rathleff, la partie la plus efficace du traitement. Progression sur 8 semaines : 3 × 12, puis 4 × 10, puis 5 × 8 en ajoutant du poids dès que 12 répétitions lentes passent confortablement.",
+    "<strong>Fréquence</strong> : le protocole original se fait UN JOUR SUR DEUX, alors que tu ne l'as qu'une fois par semaine au Lower. On peut l'ajouter en fin de séance le lundi et le vendredi — ce sont tes deux autres jours de salle, et aucun n'est un jour de course. Dis-moi si tu veux que je le mette dans le programme.",
+    "<strong>Les semelles orthopédiques</strong> dans les Clifton à chaque sortie, et jamais de course en chaussures lifestyle, même 500 m.",
+    "<strong>Le signal d'alarme</strong> : si la douleur au réveil monte deux jours de suite, tu sautes la course suivante et tu la remplaces par du vélo. C'est le chiffre que tu notes chaque matin qui décide, pas la sensation du moment.",
+  ],
+};
+
 /* Rendu HTML de la routine — utilisé par le guide (site complet) ET par
    l'aide du site simple, pour que le contenu n'existe qu'à un seul endroit. */
-function htmlRoutinePosture(compact) {
-  const a = ROUTINE_POSTURE.autotest;
-  const autotest = compact ? "" :
+function htmlRoutine(R, compact) {
+  const a = R.autotest;
+  const autotest = (compact || !a) ? "" :
     `<div class="card"><h3 style="margin-top:0">${a.titre}</h3><p>${a.intro}</p>
        <ul>${a.tests.map(t => `<li>${t}</li>`).join("")}</ul>
        <p><strong>${a.conclusion}</strong></p></div>`;
-  const ex = ROUTINE_POSTURE.exercices.map((e, i) => compact
-    ? `<li><b>${i + 1}. ${e.nom}</b> — ${e.dose}<br><span class="rp-etapes">${e.etapes[1]}</span></li>`
+  const ex = R.exercices.map((e, i) => compact
+    ? `<li><b>${e.nom}</b> <span class="rp-dose">${e.dose}</span>
+         <ul class="rp-pas">${e.etapes.map(t => `<li>${t}</li>`).join("")}</ul></li>`
     : `<div class="card"><h3 style="margin-top:0">${i + 1}. ${e.nom} <span class="badge muscu">${e.dose}</span></h3>
          <ul>${e.etapes.map(t => `<li>${t}</li>`).join("")}</ul>
          <details><summary>Pourquoi cet exercice ?</summary><p>${e.pourquoi}</p></details></div>`).join("");
-  if (compact) return `<p><b>Routine posture — 5 min/jour.</b> ${ROUTINE_POSTURE.quand}</p><ol class="rp">${ex}</ol>
-    <p class="rp-etapes">Bas-ventre arrondi : fais le test du miroir (côtes basses + bassin enroulé + expiration) — s'il s'aplatit, c'est la position ; sinon c'est le gras ou un ballonnement. Détail dans le Guide du coach.</p>`;
-  return `${autotest}<div class="box imp"><strong>Quand ?</strong> ${ROUTINE_POSTURE.quand}</div>${ex}
-    <div class="card"><ul>${ROUTINE_POSTURE.ailleurs.map(t => `<li>${t}</li>`).join("")}</ul></div>`;
+  if (compact) return `<div class="routine">
+    <h4>${R.icone} ${R.titre} — ${R.duree} par jour</h4>
+    <p class="rp-quand"><b>Quand :</b> ${R.quand}</p>
+    <ol class="rp">${ex}</ol>
+    ${R.ailleurs ? `<details class="rp-plus"><summary>Et en dehors de la routine</summary><ul>${R.ailleurs.map(t => `<li>${t}</li>`).join("")}</ul></details>` : ""}
+    ${a ? `<details class="rp-plus"><summary>${a.titre}</summary><p>${a.intro}</p><ul>${a.tests.map(t => `<li>${t}</li>`).join("")}</ul><p><b>${a.conclusion}</b></p></details>` : ""}
+  </div>`;
+  return `${autotest}<div class="box imp"><strong>Quand ?</strong> ${R.quand}</div>${ex}
+    <div class="card"><ul>${R.ailleurs.map(t => `<li>${t}</li>`).join("")}</ul></div>`;
 }
+
+/* Alias historique (guide.html) */
+function htmlRoutinePosture(compact) { return htmlRoutine(ROUTINE_POSTURE, compact); }

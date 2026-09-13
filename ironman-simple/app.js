@@ -88,6 +88,14 @@ function renderStats() {
       <b>${douleur === null ? "—" : douleur + "/10"}</b><span>Pied au réveil</span></div>`;
 }
 
+/* Ouvre la section des routines et y amène l'écran */
+function ouvrirRoutines(e) {
+  e.preventDefault();
+  const sec = document.getElementById("section-routines");
+  sec.open = true;
+  sec.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 /* Moyenne des pesées sur la fenêtre de 7 jours qui se termine il y a `decalage` jours (null si aucune pesée) */
 function poidsMoyen(auj, decalage) {
   const vals = [];
@@ -134,6 +142,7 @@ function renderJour() {
         <div class="toggle ${state[kPosture] ? "actif" : ""}"
              onclick="set('${kPosture}', !state['${kPosture}']); renderJour(); renderStats(); renderGraphs()">
           ${state[kPosture] ? "✓ Posture" : "Posture 5 min"}</div></div>
+      <button class="lien-routines" onclick="ouvrirRoutines(event)">voir les exos ↓</button>
       <div class="jour-plus" id="jour-plus">
         ${champJour("taille", "Taille nombril (cm)")} ${champJour("sommeil", "Sommeil (h)")} ${champJour("eau", "Eau (L)")}
         ${champJour("pas", "Pas (facultatif)")} ${champJour("electrolytes", "Électrolytes")}
@@ -351,7 +360,8 @@ function renderGraphs() {
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("sous-titre").textContent = BLOC.nom + " · " + dateJolie(datesDuBloc()[0]).split(" ").slice(1).join(" ") + " → " + dateJolie(datesDuBloc()[datesDuBloc().length - 1]).split(" ").slice(1).join(" ");
   renderStats(); renderJour(); renderChips(); renderSeances(); renderTests(); renderGraphs();
-  document.getElementById("routine-posture").innerHTML = htmlRoutinePosture(true);
+  document.getElementById("liste-routines").innerHTML =
+    htmlRoutine(ROUTINE_PIED, true) + htmlRoutine(ROUTINE_POSTURE, true);
   // Fermer le menu ⋯ quand on clique ailleurs
   document.addEventListener("click", e => {
     const menu = document.getElementById("menu");
