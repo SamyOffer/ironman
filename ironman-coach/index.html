@@ -12,7 +12,7 @@
 
   <main class="content">
     <h1>Tableau de bord</h1>
-    <p class="lead">Bloc 3 · Sèche + Triathlon, une séance par jour — du 14 septembre au 20 décembre 2026</p>
+    <p class="lead">Bloc 3 · Sèche + Triathlon, une séance par jour — du 5 octobre 2026 au 10 janvier 2027</p>
 
     <details class="aide">
       <summary>ℹ️ L'objectif du bloc + comment marche la sauvegarde (si besoin)</summary>
@@ -88,9 +88,11 @@ function attenduesACeJour() {
   const dates = datesDuBloc(), aujourdhui = aujourdhuiISO();
   let total = 0;
   BLOC.semaines.forEach((sem, wi) => {
-    const joursEcoulesSem = dates.slice(wi * 7, wi * 7 + 7).filter(d => d <= aujourdhui).length;
+    const joursActifs = dates.slice(wi * 7, wi * 7 + 7)
+      .filter(d => !BLOC.repriseReelle || d >= BLOC.repriseReelle);
+    const joursEcoulesSem = joursActifs.filter(d => d <= aujourdhui).length;
     const nonOpt = sem.seances.filter(s => !s.optionnel).length;
-    total += nonOpt * joursEcoulesSem / 7;
+    if (joursActifs.length) total += nonOpt * joursEcoulesSem / joursActifs.length;
   });
   return Math.round(total);
 }
@@ -130,7 +132,7 @@ function afficherSemaine() {
 
   if (aujourdhui < dates[0]) {
     titre.textContent = "Avant le départ";
-    el.innerHTML = `<div class="card">Le bloc démarre le <strong>lundi 14 septembre</strong>.
+    el.innerHTML = `<div class="card">Le bloc démarre le <strong>lundi 5 octobre</strong>.
       D'ici là : mesures de départ (page <a href="tests.html">Tests</a>) et la section sèche du
       <a href="guide.html">Guide du coach</a>.</div>`;
     return;

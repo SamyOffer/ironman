@@ -62,8 +62,11 @@ function renderStats() {
   const bonus = toutes.filter(s => s.optionnel && estFaite(s.id)).length;
   let attendues = 0;
   BLOC.semaines.forEach((sem, wi) => {
-    const jours = dates.slice(wi * 7, wi * 7 + 7).filter(d => d <= auj).length;
-    attendues += sem.seances.filter(s => !s.optionnel).length * jours / 7;
+    const joursActifs = dates.slice(wi * 7, wi * 7 + 7)
+      .filter(d => !BLOC.repriseReelle || d >= BLOC.repriseReelle);
+    const joursEcoules = joursActifs.filter(d => d <= auj).length;
+    if (joursActifs.length)
+      attendues += sem.seances.filter(s => !s.optionnel).length * joursEcoules / joursActifs.length;
   });
   attendues = Math.round(attendues);
   const assiduite = attendues ? Math.min(100, Math.round(100 * faites / attendues)) : null;

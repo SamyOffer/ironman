@@ -4,7 +4,7 @@
    Le code (programme.html, site simple) ne fait que l'afficher.
 
    >>> BLOC 3 — Sèche + Triathlon, UNE séance par jour
-       (lundi 14 septembre → dimanche 20 décembre 2026, 14 semaines)
+       (lundi 5 octobre 2026 → dimanche 10 janvier 2027, 14 semaines)
    (Les Blocs 1 et 2 restent sauvegardés sous leurs clés
    "ironman-samy-bloc1" / "ironman-samy-bloc2" — rien n'est perdu.)
 
@@ -103,7 +103,7 @@ const MUSCU = {
    releve = relevé de charges muscu (→ page Tests). */
 const PLAN = [
   { num: 1, theme: "Reprise et calibrage",
-    focus: "Trois semaines sans courir : on repart exactement là où le pied avait dit oui le 21 août. En salle, semaine de calibrage : trouve pour chaque exercice la charge qui te laisse 2 reps en réserve, note-la dans Hevy. Calories : 2 100, protéines 150 g, pesée chaque matin.",
+    focus: "Reprise réelle mercredi 7 octobre avec le Lower. Les séances du lundi et du mardi restent visibles comme rattrapage facultatif, mais elles ne comptent pas dans l'assiduité : ne les empile pas sur les cinq jours restants. En salle, trouve pour chaque exercice la charge qui te laisse 2 reps en réserve et note-la dans Hevy. Calories : 2 100, protéines 150 g, pesée chaque matin.",
     c1: "8 × (1' course / 2' marche)", c2: "8 × (1' / 2')", velo: "60 min Z2 stricte", nat: "400 m technique — première fois",
     muscuNote: "Semaine de calibrage : charge à 2 reps en réserve sur chaque exercice, tu la notes dans Hevy" },
   { num: 2, theme: "Segments de 2 minutes",
@@ -266,7 +266,7 @@ function _semaine(sem) {
     seances.push(_test(`${w}-dim`, "Dim", "BILAN du bloc + pesée + export", "~20 min",
       "Repos complet. Pesée à jeun, tour de taille, photo, bilan écrit, export du fichier.",
       ["Pèse-toi à jeun + tour de taille au nombril → page Tests",
-       "Photo dans la même lumière que celle du 14 septembre",
+       "Photo dans la même lumière que celle du 7 octobre",
        "Remplis le bilan libre : ce qui a marché, ce qui a coincé, le pied, la faim, la natation",
        "Menu ⋯ → « Sauvegarde .json » → envoie-moi le fichier",
        "Repos. Mérité."],
@@ -278,18 +278,26 @@ function _semaine(sem) {
     c2.contenu.push("Pied qui dit non ce matin ? Remplace par 90 min de vélo Z2 (statut « adapté »)");
     seances.push(c2);
   }
+  // Le bloc a réellement commencé le mercredi 7 octobre. Les deux premières
+  // cartes restent consultables, sans pénaliser l'assiduité ni inviter Samy
+  // à empiler trois séances pour « rattraper » le début de semaine.
+  if (sem.num === 1) {
+    seances[0].optionnel = true;
+    seances[1].optionnel = true;
+  }
   return { num: sem.num, theme: sem.theme, focus: sem.focus, seances };
 }
 
 const BLOC = {
   nom: "Bloc 3 — Sèche + Triathlon, une séance par jour",
-  debut: "2026-09-14",           // lundi 14 septembre 2026
+  debut: "2026-10-05",           // lundi 5 octobre 2026 ; reprise réelle le mercredi 7
+  repriseReelle: "2026-10-07",   // l'assiduité commence ici, pas le lundi théorique
   objectifBloc:
     "Quatorze semaines, une séance par jour, jours fixes : 3 muscu (épaules et dos en premier), " +
     "2 vélos Z2 (+ 15-20 min après chaque Upper), 2 marche/course avec le pied qui vote, 1 natation. " +
     "Nutrition : sèche lente à 2 100 kcal et 150 g de protéines, ajustée toutes les 2 semaines sur la " +
     "moyenne de poids 7 jours (cible : −0,3 à −0,45 kg/semaine), semaines 6 et 12 à maintenance. " +
-    "Départ 66 kg / 18,9 % (11 sept.) ; cible 20 décembre : ~61 kg, abdos hauts visibles, taille −6 cm. " +
+    "Départ 66 kg / 18,9 % (mesure du 11 sept.) ; cible 10 janvier : ~61 kg, abdos hauts visibles, taille −6 cm. " +
     "Règle absolue : sommeil ≥ 7 h 30, sinon la sèche mange du muscle. " +
     "Chaque jour, 5 min de routine posture collées à la rééduc pied.",
   semaines: PLAN.map(_semaine),
@@ -313,7 +321,7 @@ const AGENCEMENT = [
    Affichés + saisis dans tests.html. */
 const TESTS = [
   {
-    id: "test-depart", titre: "Mesures de départ", quand: "Lundi 14 septembre, à jeun",
+    id: "test-depart", titre: "Mesures de départ", quand: "Mercredi 7 octobre, à jeun — jour de reprise réelle",
     protocole: "Pesée à jeun au réveil, tour de taille au niveau du nombril (détendu, expiration naturelle), photo de face et de profil dans une lumière que tu pourras reproduire.",
     cible: "Référence du bloc. Le 11 septembre : 66 kg, 18,9 % (balance). Le % de la balance a une erreur de 3 à 5 points : c'est le poids moyen sur 7 jours et le tour de taille qui comptent.",
     champs: [
@@ -366,8 +374,8 @@ const TESTS = [
     ],
   },
   {
-    id: "test-corps", titre: "Poids, tour de taille & photo de fin", quand: "Dimanche 20 décembre, à jeun",
-    protocole: "Pesée à jeun au réveil + tour de taille au nombril, détendu. Photo dans la même lumière que le 14 septembre.",
+    id: "test-corps", titre: "Poids, tour de taille & photo de fin", quand: "Dimanche 10 janvier, à jeun",
+    protocole: "Pesée à jeun au réveil + tour de taille au nombril, détendu. Photo dans la même lumière que le 7 octobre.",
     cible: "Départ : 66 kg / 18,9 %. Cible : ~61 kg, taille −6 cm, abdos hauts visibles au repos. Le critère final reste le miroir : satisfait ou pas.",
     champs: [
       { cle: "poids", label: "Poids à jeun (kg)", type: "number" },
@@ -376,7 +384,7 @@ const TESTS = [
     ],
   },
   {
-    id: "test-bilan", titre: "Bilan libre du bloc", quand: "Dimanche 20 décembre",
+    id: "test-bilan", titre: "Bilan libre du bloc", quand: "Dimanche 10 janvier",
     protocole: "Écris librement : ce qui a marché, ce qui a coincé, le pied sur 14 semaines, la faim, le sommeil, la natation, la motivation.",
     cible: "Ce texte + ton export .json = tout ce dont j'ai besoin pour construire janvier (régime inversé, natation 2×, zones vélo).",
     champs: [

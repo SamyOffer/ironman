@@ -95,7 +95,7 @@ Les séances non prévues se loggent via « + Ajouter une séance libre »
 
 ## Données clés du bloc
 
-- Bloc 3 « Sèche + Triathlon, une séance par jour » : 14 sept. → 20 déc. 2026
+- Bloc 3 « Sèche + Triathlon, une séance par jour » : 5 oct. 2026 → 10 janv. 2027
   (14 semaines). Jours fixes : Lun Upper A · Mar course · Mer Lower · Jeu vélo
   Z2 · Ven Upper B · Sam natation · Dim course. Les 98 séances sont GÉNÉRÉES
   dans `programme-data.js` depuis le tableau `PLAN` (une ligne par semaine :
