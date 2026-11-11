@@ -134,8 +134,8 @@ function renderJour() {
     </div>
     <div class="jour-grille">
       ${champJour("poids", "Poids à jeun (kg)")}
-      ${champJour("calories", "Calories veille")}
-      ${champJour("proteines", "Protéines veille (g)")}
+      ${champJour("energie", "Énergie (1-5)")}
+      ${champJour("faim", "Faim (1-5)")}
       ${champJour("pied_douleur", "Pied réveil (0-10)")}
       <div class="champ"><span>&nbsp;</span>
         <div class="toggle ${state[kReeduc] ? "actif" : ""}"
@@ -147,8 +147,7 @@ function renderJour() {
           ${state[kPosture] ? "✓ Posture" : "Posture 5 min"}</div></div>
       <button class="lien-routines" onclick="ouvrirRoutines(event)">voir les exos ↓</button>
       <div class="jour-plus" id="jour-plus">
-        ${champJour("taille", "Taille nombril (cm)")} ${champJour("sommeil", "Sommeil (h)")} ${champJour("eau", "Eau (L)")}
-        ${champJour("pas", "Pas (facultatif)")} ${champJour("electrolytes", "Électrolytes")}
+        ${champJour("taille", "Taille nombril (cm, lundi)")} ${champJour("sommeil", "Sommeil (h)")}
       </div>
       <div class="jour-note" id="jour-note">
         <label class="champ"><span>Note libre (repas, énergie, pied...)</span>
@@ -159,6 +158,44 @@ function renderJour() {
     <button class="lien-note" onclick="document.getElementById('jour-note').classList.toggle('ouvert')">+ note</button>`;
   // Note déjà remplie → visible d'office
   if (state[kNote]) document.getElementById("jour-note").classList.add("ouvert");
+}
+
+/* ============================================================
+   2 bis. LA SÉANCE DU JOUR — un seul bandeau, une seule chose à faire
+   ============================================================ */
+function seanceDuJour() {
+  const dates = datesDuBloc(), auj = aujourdhuiISO();
+  const i = dates.indexOf(auj);
+  if (i < 0) return null;
+  const sem = BLOC.semaines[Math.floor(i / 7)];
+  return { semaineIndex: Math.floor(i / 7), seance: sem.seances.find(s => s.jour === i % 7) };
+}
+
+function renderAujourdhui() {
+  const el = document.getElementById("aujourdhui");
+  const dates = datesDuBloc(), auj = aujourdhuiISO();
+  let txt, s = null, wi = 0;
+  if (auj < dates[0]) {
+    s = BLOC.semaines[0].seances[0];
+    txt = `Le bloc commence ${dateJolie(dates[0]).toLowerCase()}`;
+  } else {
+    const t = seanceDuJour();
+    if (!t || !t.seance) { el.hidden = true; return; }
+    s = t.seance; wi = t.semaineIndex; txt = "Aujourd'hui";
+  }
+  const fait = estFaite(s.id);
+  el.hidden = false;
+  el.className = "aujourdhui-bandeau" + (fait ? " fait" : "");
+  el.innerHTML = `<span class="aj-label">${txt}${fait ? " · ✓ fait" : ""}</span>
+    <b>${ICONES[s.type] || "•"} ${s.titre.replace(/^\w+ · /, "")}</b>
+    <small>${s.duree} — ${s.objectif}</small>
+    <span class="aj-lien">voir la séance ↓</span>`;
+  el.onclick = () => {
+    semaineAffichee = wi; renderChips(); renderSeances();
+    const carte = document.getElementById(`s-${s.id}`);
+    carte.classList.add("ouverte");
+    carte.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 }
 
 /* ============================================================
@@ -175,7 +212,8 @@ function renderChips() {
   document.getElementById("chips-semaines").innerHTML = BLOC.semaines.map((sem, i) =>
     `<button class="chip ${i === semaineAffichee ? "actif" : ""}"
        onclick="semaineAffichee=${i};renderChips();renderSeances()">Semaine ${sem.num}</button>`).join("");
-  document.getElementById("theme-semaine").textContent = BLOC.semaines[semaineAffichee].theme;
+  const sem = BLOC.semaines[semaineAffichee];
+  document.getElementById("theme-semaine").innerHTML = `<b>${sem.theme}</b>${sem.focus ? `<br>${sem.focus}` : ""}`;
 }
 
 function boutonsStatut(id) {
@@ -193,7 +231,7 @@ function toucherStatut(id, val) {
   if ((nouveau === "faite" || nouveau === "adaptee") && !state[`seance.${id}.faitele`])
     set(`seance.${id}.faitele`, aujourdhuiISO());
   majSeanceDOM(id);
-  renderStats(); renderGraphs();
+  renderStats(); renderGraphs(); renderAujourdhui();
 }
 
 function majSeanceDOM(id) {
@@ -216,11 +254,13 @@ function renderSeance(s) {
   const st = statutDe(s.id);
   const classe = estFaite(s.id) ? "faite" : (st === "pas-pu" ? "paspu" : "");
   const raisonVisible = st === "adaptee" || st === "pas-pu";
+  const t = seanceDuJour();
+  const estAuj = t && t.seance && t.seance.id === s.id;
   return `
-  <div class="seance ${classe}" id="s-${s.id}">
+  <div class="seance ${classe} ${estAuj ? "aujourdhui ouverte" : ""}" id="s-${s.id}">
     <div class="ligne" onclick="this.parentElement.classList.toggle('ouverte')">
       <div class="sport ${s.type}">${ICONES[s.type] || "•"}</div>
-      <div class="nom"><b>${s.titre}${s.optionnel ? " · bonus" : ""}</b><small>${s.duree} — ${s.objectif}</small></div>
+      <div class="nom"><b>${estAuj ? '<span class="tag-auj">Aujourd\'hui</span> ' : ""}${s.titre}${s.optionnel ? " · bonus" : ""}</b><small>${s.duree} — ${s.objectif}</small></div>
       ${boutonsStatut(s.id)}
     </div>
     <div class="details">
@@ -348,6 +388,7 @@ function renderGraphs() {
   document.getElementById("graphs").innerHTML = `
     <div class="graph"><div class="titre-graph">Poids (kg)</div>${sparkline(dates.map(d => state[`journal.${d}.poids`] ?? null))}</div>
     <div class="graph"><div class="titre-graph">Tour de taille (cm)</div>${sparkline(dates.map(d => state[`journal.${d}.taille`] ?? null))}</div>
+    <div class="graph"><div class="titre-graph">Énergie (1-5)</div>${sparkline(dates.map(d => { const v = state[`journal.${d}.energie`]; return v === undefined || v === "" ? null : v; }))}</div>
     <div class="graph"><div class="titre-graph">Douleur pied au réveil</div>${sparkline(dates.map(d => { const v = state[`journal.${d}.pied_douleur`]; return v === undefined || v === "" ? null : v; }))}</div>
     <div class="graph"><div class="titre-graph">Séances faites / semaine</div>${barres(BLOC.semaines.map((sem, wi) => ({
       x: sem.num, y: sem.seances.filter(s => !s.optionnel && estFaite(s.id)).length, max: sem.seances.filter(s => !s.optionnel).length })))}</div>
@@ -358,11 +399,46 @@ function renderGraphs() {
 }
 
 /* ============================================================
+   6. BLOCS PASSÉS — consultation des archives (lecture seule)
+   Les données de chaque bloc restent sous leur clé (ironman-samy-blocN),
+   dans le cloud et dans les exports. REGISTRE vient d'export.js.
+   ============================================================ */
+function ouvrirArchives() {
+  const echap = t => String(t ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  const passes = REGISTRE.filter(b => b.cle !== STORE_KEY).slice().reverse();
+  const html = passes.map(b => {
+    let d = {};
+    try { d = JSON.parse(localStorage.getItem(b.cle)) || {}; } catch { /* illisible */ }
+    const faites = Object.keys(b.seances).filter(id => {
+      const st = d[`seance.${id}.statut`] || (d[`seance.${id}.fait`] ? "faite" : "");
+      return st === "faite" || st === "adaptee";
+    });
+    const lignes = faites.map(id => {
+      const [n, , titre] = b.seances[id];
+      const notes = [d[`seance.${id}.donnees`], d[`seance.${id}.ressenti`]].filter(Boolean).map(echap).join(" · ");
+      return `<li><b>S${n} · ${echap(titre)}</b>${d[`seance.${id}.faitele`] ? " — " + d[`seance.${id}.faitele`] : ""}${notes ? `<br><small>${notes}</small>` : ""}</li>`;
+    });
+    const libres = [];
+    Object.keys(d).forEach(k => { const m = k.match(/^extra\.w(\d+)\.(\d+)\.titre$/); if (m && d[k]) libres.push(`<li><b>S${m[1]} · séance libre</b>${d[`extra.w${m[1]}.${m[2]}.date`] ? " — " + d[`extra.w${m[1]}.${m[2]}.date`] : ""}<br><small>${echap(d[k])}</small></li>`); });
+    const jours = new Set(Object.keys(d).filter(k => k.startsWith("journal.")).map(k => k.split(".")[1]));
+    const tests = Object.keys(b.tests || {}).filter(t => Object.keys(d).some(k => k.startsWith(`tests.${t}.`) && d[k] !== ""))
+      .map(t => `<li><b>${echap(b.tests[t])}</b> : ${Object.keys(d).filter(k => k.startsWith(`tests.${t}.`)).map(k => `${k.split(".")[2]} ${echap(d[k])}`).join(" · ")}</li>`);
+    return `<details class="archive"><summary><b>${echap(b.nom)}</b><br><small>${echap(b.periode)} · ${faites.length} séance(s) notée(s) · ${jours.size} jour(s) de journal</small></summary>
+      ${lignes.length + libres.length ? `<ul>${lignes.join("")}${libres.join("")}</ul>` : "<p>Aucune séance notée.</p>"}
+      ${tests.length ? `<p><b>Tests</b></p><ul>${tests.join("")}</ul>` : ""}</details>`;
+  }).join("");
+  document.getElementById("archives-contenu").innerHTML = html +
+    `<p class="aj-note">Tout est aussi dans l'export Excel (menu ⋯), une feuille par type de données, tous blocs confondus.</p>`;
+  document.getElementById("dlg-archives").showModal();
+}
+
+/* ============================================================
    Démarrage
    ============================================================ */
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("sous-titre").textContent = BLOC.nom + " · " + dateJolie(datesDuBloc()[0]).split(" ").slice(1).join(" ") + " → " + dateJolie(datesDuBloc()[datesDuBloc().length - 1]).split(" ").slice(1).join(" ");
-  renderStats(); renderJour(); renderChips(); renderSeances(); renderTests(); renderGraphs();
+  renderStats(); renderAujourdhui(); renderJour(); renderChips(); renderSeances(); renderTests(); renderGraphs();
+  document.getElementById("liste-nutrition").innerHTML = htmlNutrition(true);
   document.getElementById("liste-routines").innerHTML =
     htmlRoutine(ROUTINE_PIED, true) + htmlRoutine(ROUTINE_POSTURE, true);
   // Fermer le menu ⋯ quand on clique ailleurs

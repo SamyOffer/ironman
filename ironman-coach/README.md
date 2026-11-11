@@ -95,19 +95,21 @@ Les séances non prévues se loggent via « + Ajouter une séance libre »
 
 ## Données clés du bloc
 
-- Bloc 3 « Sèche + Triathlon, une séance par jour » : 5 oct. 2026 → 10 janv. 2027
-  (14 semaines). Jours fixes : Lun Upper A · Mar course · Mer Lower · Jeu vélo
-  Z2 · Ven Upper B · Sam natation · Dim course. Les 98 séances sont GÉNÉRÉES
-  dans `programme-data.js` depuis le tableau `PLAN` (une ligne par semaine :
-  formats course, vélo, natation, note muscu, semaine maintenance/relevé) et
-  les 3 séances de muscu `MUSCU`. Pour changer une progression : une ligne.
-- Nutrition du bloc (dans `AGENCEMENT` et le guide) : 2 100 kcal, 150 g
-  protéines, ajustement toutes les 2 semaines sur la moyenne de poids 7 j
-  (site simple : pastille « Poids moy. 7 j » + tendance). Semaines 6 et 12 à
-  maintenance.
-- Clé de sauvegarde : `ironman-samy-bloc3`. Les Blocs 1 et 2 restent dans le
-  cloud sous `ironman-samy-bloc1` / `ironman-samy-bloc2` (catalogues dans le
-  `REGISTRE` d'export.js pour que l'Excel reste lisible).
+- Bloc 4 « Reprise claire » : 16 nov. 2026 → 21 févr. 2027 (14 semaines).
+  Jours fixes : Lun natation · Mar vélo Z2 (S1-S6) puis natation 2 (S7-S14) ·
+  Mer Lower · Jeu Upper A · Ven course · Sam Upper B · Dim course. Chaque
+  séance porte `jour` (0 = lundi) : le site simple affiche la séance du jour
+  en bandeau et l'ouvre dans la liste. Chaque séance finit par sa « version
+  courte » (jours sans énergie). Les semaines d'examen (10 déc., 4 et 22 janv.)
+  ont des consignes par jour (`notes` dans `PLAN`).
+- Nutrition sans compter (`NUTRITION` + `htmlNutrition`, section
+  « Manger sans compter » du site simple) : méthode de l'assiette, collation
+  avant la séance, ajustement des féculents toutes les 2 semaines sur la
+  moyenne de poids 7 j. Le journal note énergie et faim (1-5), plus de calories.
+- Clé de sauvegarde : `ironman-samy-bloc4`. Les Blocs 1, 2 et 3 restent dans le
+  cloud sous leurs clés, sont listés dans le `REGISTRE` d'export.js (Excel
+  lisible) et consultables sur le site simple : menu ⋯ → « Blocs passés ».
+  Le programme du Bloc 3 est archivé tel quel dans `archives/programme-bloc3.js`.
 - Le bloc n'est plus limité à 4 semaines : `datesDuBloc()` suit
   `BLOC.semaines.length`, plus aucun `dates[27]` en dur.
 - Routines quotidiennes : `ROUTINE_PIED` (fasciite — étirement spécifique du

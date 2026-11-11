@@ -72,6 +72,24 @@ const REGISTRE = [
       "test-corps": "Poids & mensurations", "test-bilan": "Bilan libre du bloc",
     },
   },
+  {
+    cle: "ironman-samy-bloc3",
+    nom: "Bloc 3 — Sèche + Triathlon, une séance par jour",
+    periode: "7 octobre – 15 novembre 2026 (arrêté, remplacé par le Bloc 4) — programme complet dans ironman-coach/archives/programme-bloc3.js",
+    /* 14 semaines × 7 jours, mêmes ids partout : w<n>-lun … w<n>-dim */
+    seances: (() => {
+      const jours = [["lun", "muscu", "Upper A"], ["mar", "course", "Marche/course n°1"], ["mer", "muscu", "Lower + Rathleff"],
+                     ["jeu", "velo", "Vélo Z2"], ["ven", "muscu", "Upper B"], ["sam", "natation", "Natation technique"], ["dim", "course", "Marche/course n°2"]];
+      const o = {};
+      for (let n = 1; n <= 14; n++) jours.forEach(([j, t, titre]) => { o[`w${n}-${j}`] = [n, t, titre]; });
+      return o;
+    })(),
+    tests: {
+      "test-depart": "Mesures de départ", "test-course": "Course continue — cap 30 min", "test-velo": "20 min vélo — effort max",
+      "test-nage": "200 m nage chrono", "test-muscu": "Relevés de charges (Hevy)", "test-corps": "Poids, tour de taille & photo de fin",
+      "test-bilan": "Bilan libre du bloc",
+    },
+  },
   /* Le bloc COURANT est décrit par programme-data.js (BLOC/TESTS)
      et injecté dynamiquement par blocsConnus() ci-dessous. */
 ];

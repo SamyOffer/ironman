@@ -20,6 +20,7 @@
           <input type="file" accept=".json" style="display:none" onchange="if(this.files[0]) importJSON(this.files[0])">
         </label>
         <button onclick="document.getElementById('dlg-aide').showModal(); menu.open=false">ℹ️ Aide &amp; règles</button>
+        <button onclick="ouvrirArchives(); menu.open=false">🗄 Blocs passés (archives)</button>
         <button onclick="location.href='../ironman-coach/index.html'">🗂 Version complète du site</button>
       </div>
     </details>
@@ -30,6 +31,9 @@
   <!-- Pastilles de stats -->
   <div class="stats" id="stats"></div>
 
+  <!-- La séance du jour : la seule chose à regarder en ouvrant le site -->
+  <button class="aujourdhui-bandeau" id="aujourdhui" hidden></button>
+
   <!-- Journal rapide du jour -->
   <h2>Journal</h2>
   <div class="carte" id="carte-jour"></div>
@@ -38,6 +42,12 @@
   <details class="section" id="section-routines">
     <summary>🦶🧍 Mes exos quotidiens — pied &amp; posture <span class="chevron">›</span></summary>
     <div class="contenu-section" id="liste-routines"></div>
+  </details>
+
+  <!-- Nutrition sans compter, repliée -->
+  <details class="section" id="section-nutrition">
+    <summary>🍽 Manger sans compter <span class="chevron">›</span></summary>
+    <div class="contenu-section" id="liste-nutrition"></div>
   </details>
 
   <!-- Semaine + séances -->
@@ -63,14 +73,23 @@
 <dialog id="dlg-aide">
   <button class="fermer" onclick="this.closest('dialog').close()">✕</button>
   <h3>L'essentiel</h3>
-  <p><b>Statuts :</b> ✓ faite · ≈ faite en adapté (remplacée/modifiée — dis quoi) · ✗ pas pu (dis pourquoi, je le lis). Re-taper = annuler. Taper sur une séance = détails.</p>
-  <p><b>Une séance par jour :</b> Lun Upper A · Mar course · Mer Lower · Jeu vélo · Ven Upper B · Sam natation · Dim course. Semaine minimale si ça coince : les 3 muscu, le vélo du jeudi, une course.</p>
-  <p><b>Muscu :</b> épaules en premier, chaque série à 0-2 reps de l'échec. Un muscle prioritaire stagne 3 semaines → +1 série, pas +kg. <b>Zone 2 :</b> tu peux parler, FC 120-140 ; la seule intensité = le tempo du jeudi une semaine sur deux. <b>Course :</b> allure conversation, ~170 pas/min, 48 h entre deux courses, jamais la veille ni le lendemain du Lower, douleur pied &gt; 3/10 = stop au milieu de la séance.</p>
-  <p><b>Sèche :</b> 2 100 kcal, 150 g de protéines, 60 g de lipides. Toutes les 2 semaines, sur la moyenne 7 j : perte &lt; 0,25 kg/sem → −100 kcal ; &gt; 0,5 → +100. Semaines 6 et 12 : ~2 400 kcal. Sommeil ≥ 7 h 30.</p>
-  <p><b>Chaque matin (30 s) :</b> poids à jeun, calories et protéines de la veille, douleur pied au réveil (0-10) + rééduc pied 5 min + routine posture 5 min. Tour de taille le lundi.</p>
-  <p><b>Les exos du pied et de la posture</b> sont dans la section « 🦶🧍 Mes exos quotidiens » de la page d'accueil, juste sous le journal.</p>
+  <p><b>Chaque jour, une séance, toujours au même jour :</b> Lun natation · Mar vélo (2e natation à partir du 28 déc.) · Mer Lower · Jeu Upper A · Ven course · Sam Upper B · Dim course. Le bandeau orange en haut te dit quoi faire aujourd'hui.</p>
+  <p><b>Statuts :</b> ✓ faite · ≈ faite en adapté ou en version courte (dis quoi) · ✗ pas pu (dis pourquoi, je le lis). Re-taper = annuler. Taper sur une séance = détails.</p>
+  <p><b>Pas d'énergie ?</b> Collation, 20 min, échauffement + 1re série. Toujours rien : la version courte écrite en bas de chaque séance. Elle compte (≈). Un jour raté ne se rattrape pas : le lendemain, tu fais la séance du lendemain.</p>
+  <p><b>Muscu :</b> épaules en premier, chaque série à 0-2 reps de l'échec. <b>Vélo :</b> zone 2, tu peux parler. <b>Course :</b> allure conversation, douleur pied &gt; 3/10 = stop au milieu de la séance. <b>Natation :</b> technique d'abord, s'arrêter 15 s au bord, ça compte.</p>
+  <p><b>Manger :</b> sans compter — 1 paume de protéines à chaque repas, collation avant la séance. Détail dans « 🍽 Manger sans compter ». La moyenne du poids sur 7 jours décide toutes les 2 semaines.</p>
+  <p><b>Chaque matin (20 s) :</b> poids à jeun, énergie et faim de 1 à 5, douleur pied au réveil, rééduc pied + posture. Tour de taille le lundi.</p>
+  <p><b>Examens</b> (10 déc., 4 janv., 22 janv.) : c'est déjà prévu dans les séances concernées.</p>
   <p><b>Sauvegarde :</b> tout est automatique. Excel = à partager / archiver. .json = à envoyer au coach chaque dimanche.</p>
   <p style="color:var(--texte-2)">Pour les explications détaillées de chaque séance : bouton « pourquoi ? » dans la séance, ou la version complète du site (menu ⋯).</p>
+</dialog>
+
+<!-- Archives des blocs passés -->
+<dialog id="dlg-archives">
+  <button class="fermer" onclick="this.closest('dialog').close()">✕</button>
+  <h3>Blocs passés</h3>
+  <p class="aj-note">Rien n'est jamais effacé : chaque bloc garde ses données, dans le cloud et dans les exports.</p>
+  <div id="archives-contenu"></div>
 </dialog>
 
 <div id="toast">✓ sauvegardé</div>
