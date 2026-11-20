@@ -102,9 +102,16 @@ function blocsConnus() {
     periode: dateJolie(datesDuBloc()[0]) + " – " + dateJolie(datesDuBloc()[datesDuBloc().length - 1]),
     seances: {}, tests: {}, courant: true,
   };
-  BLOC.semaines.forEach(sem => sem.seances.forEach(s => {
-    courant.seances[s.id] = [sem.num, s.type, s.titre + (s.optionnel ? " (optionnelle)" : "")];
-  }));
+  // Bloc en file d'attente : le catalogue = les séances réellement faites
+  const dCourant = donneesDuBloc(STORE_KEY);
+  seancesFaites(dCourant).forEach(f => {
+    const sem = f.date ? Math.floor(fsEcart(BLOC.debut, f.date) / 7) + 1 : "";
+    courant.seances[f.id] = [sem, f.type, f.titre];
+  });
+  seancesLibres(dCourant).forEach(l => {
+    const sem = l.date ? Math.floor(fsEcart(BLOC.debut, l.date) / 7) + 1 : "";
+    courant.seances[l.id] = [sem, l.type, "Séance libre — " + l.titre + (l.date ? " (" + l.date + ")" : "")];
+  });
   TESTS.forEach(t => { courant.tests[t.id] = t.titre; });
   // Blocs du registre, sans doublon avec le courant
   return REGISTRE.filter(b => b.cle !== STORE_KEY).concat([courant]);
@@ -183,7 +190,7 @@ function exporterExcel() {
   blocs.forEach(b => {
     const d = donneesDuBloc(b.cle);
     Object.entries(b.seances).forEach(([id, [sem, type, titre]]) => {
-      const statut = d[`seance.${id}.statut`] || (d[`seance.${id}.fait`] ? "faite" : "");
+      const statut = id.startsWith("libre-") ? "faite" : (d[`seance.${id}.statut`] || (d[`seance.${id}.fait`] ? "faite" : ""));
       const aDesDonnees = statut || d[`seance.${id}.donnees`] || d[`seance.${id}.ressenti`];
       // Blocs passés : on n'exporte que les séances renseignées ; bloc courant : tout
       if (!b.courant && !aDesDonnees) return;
@@ -211,7 +218,7 @@ function exporterExcel() {
   });
   const champsJournal = [
     ["poids", "Poids (kg)"], ["pas", "Pas"], ["eau", "Eau (L)"], ["electrolytes", "Électrolytes"],
-    ["calories", "Calories"], ["proteines", "Protéines (g)"], ["sommeil", "Sommeil (h)"],
+    ["calories", "Calories"], ["proteines", "Protéines (g)"], ["energie", "Énergie (1-5)"], ["faim", "Faim (1-5)"], ["sommeil", "Sommeil (h)"],
     ["pied_douleur", "Douleur pied matin (0-10)"], ["pied", "Rééduc pied"], ["ressenti", "Ressenti / notes"],
   ];
   const journalRows = [["Date"].concat(champsJournal.map(c => c[1]))];

@@ -29,7 +29,7 @@ function set(cle, val) { state[cle] = val; save(); }
 const JOURS_FR = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
 const MOIS_FR = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
 const TYPE_LABELS = { muscu: "Muscu", natation: "Natation", velo: "Vélo", course: "Course", marche: "Marche", test: "Test", repos: "Repos" };
-const ICONES = { muscu: "🏋️", natation: "🏊", velo: "🚴", course: "🏃", marche: "🚶", test: "🧪", repos: "🌙" };
+const ICONES = { muscu: "🏋️", natation: "🏊", velo: "🚴", course: "🏃", marche: "🚶", test: "🧪", repos: "🌙", autre: "✨" };
 
 function aujourdhuiISO() {
   const d = new Date();
@@ -55,28 +55,16 @@ function estFaite(id) { const s = statutDe(id); return s === "faite" || s === "a
    1. STATS (pastilles du haut)
    ============================================================ */
 function renderStats() {
-  const dates = datesDuBloc(), auj = aujourdhuiISO();
-  const toutes = BLOC.semaines.flatMap(s => s.seances);
-  const nonOpt = toutes.filter(s => !s.optionnel);
-  const faites = nonOpt.filter(s => estFaite(s.id)).length;
-  const bonus = toutes.filter(s => s.optionnel && estFaite(s.id)).length;
-  let attendues = 0;
-  BLOC.semaines.forEach((sem, wi) => {
-    const joursActifs = dates.slice(wi * 7, wi * 7 + 7)
-      .filter(d => !BLOC.repriseReelle || d >= BLOC.repriseReelle);
-    const joursEcoules = joursActifs.filter(d => d <= auj).length;
-    if (joursActifs.length)
-      attendues += sem.seances.filter(s => !s.optionnel).length * joursEcoules / joursActifs.length;
-  });
-  attendues = Math.round(attendues);
-  const assiduite = attendues ? Math.min(100, Math.round(100 * faites / attendues)) : null;
-  // Dernière douleur pied renseignée
-  let douleur = null, dDouleur = null;
-  dates.filter(d => d <= auj).forEach(d => {
-    const v = state[`journal.${d}.pied_douleur`];
-    if (v !== undefined && v !== "") { douleur = v; dDouleur = d; }
-  });
-  // Poids moyen sur 7 jours et tendance vs les 7 jours précédents (la sèche se pilote là-dessus)
+  const auj = aujourdhuiISO();
+  const sept = activitesEntre(state, decalerDate(auj, -6), auj);
+  const jours7 = new Set(sept.map(a => a.date)).size;
+  const etapeCourse = Math.min(prochaineEtape(state, "course", auj), COURSE_ETAPES.length);
+  // Dernière douleur pied renseignée (30 derniers jours)
+  let douleur = null;
+  for (let i = 30; i >= 0; i--) {
+    const v = state[`journal.${decalerDate(auj, -i)}.pied_douleur`];
+    if (v !== undefined && v !== "") douleur = v;
+  }
   const p7 = poidsMoyen(auj, 0), p14 = poidsMoyen(auj, 7);
   const delta = (p7 !== null && p14 !== null) ? p7 - p14 : null;
   const deltaTxt = delta === null ? "" : ` (${delta > 0 ? "+" : ""}${delta.toFixed(2)} kg/sem)`;
@@ -84,20 +72,21 @@ function renderStats() {
   document.getElementById("stats").innerHTML = `
     <div class="pastille ${p7 === null ? "" : (deltaOk ? "ok" : "warn")}">
       <b>${p7 === null ? "—" : p7.toFixed(1)}</b><span>Poids moy. 7 j${deltaTxt}</span></div>
-    <div class="pastille ${assiduite === null || assiduite >= 80 ? "ok" : "warn"}">
-      <b>${assiduite === null ? "—" : assiduite + " %"}</b><span>Assiduité</span></div>
-    <div class="pastille"><b>${faites}/${nonOpt.length}</b><span>Séances${bonus ? " (+" + bonus + " bonus)" : ""}</span></div>
+    <div class="pastille ${jours7 >= 5 ? "ok" : (jours7 >= 3 ? "" : "warn")}">
+      <b>${jours7}/7</b><span>Jours actifs (7 j)</span></div>
+    <div class="pastille"><b>${etapeCourse}/${COURSE_ETAPES.length}</b><span>Étapes course</span></div>
     <div class="pastille ${douleur === null || +douleur <= 2 ? "ok" : "warn"}">
       <b>${douleur === null ? "—" : douleur + "/10"}</b><span>Pied au réveil</span></div>`;
 }
 
-/* Ouvre la section des routines et y amène l'écran */
-function ouvrirRoutines(e) {
-  e.preventDefault();
-  const sec = document.getElementById("section-routines");
+/* Ouvre une section repliée et y amène l'écran */
+function ouvrirSection(e, idSection) {
+  if (e) e.preventDefault();
+  const sec = document.getElementById(idSection);
   sec.open = true;
   sec.scrollIntoView({ behavior: "smooth", block: "start" });
 }
+function ouvrirRoutines(e) { ouvrirSection(e, "section-routines"); }
 
 /* Moyenne des pesées sur la fenêtre de 7 jours qui se termine il y a `decalage` jours (null si aucune pesée) */
 function poidsMoyen(auj, decalage) {
@@ -161,121 +150,123 @@ function renderJour() {
 }
 
 /* ============================================================
-   2 bis. LA SÉANCE DU JOUR — un seul bandeau, une seule chose à faire
+   3. AUJOURD'HUI — la séance proposée par la file d'attente
    ============================================================ */
-function seanceDuJour() {
-  const dates = datesDuBloc(), auj = aujourdhuiISO();
-  const i = dates.indexOf(auj);
-  if (i < 0) return null;
-  const sem = BLOC.semaines[Math.floor(i / 7)];
-  return { semaineIndex: Math.floor(i / 7), seance: sem.seances.find(s => s.jour === i % 7) };
+const SEANCES_VUES = {};   // id → séance affichée (pour enregistrer étape/titre au ✓)
+
+function nomCourt(s) { return s ? `${ICONES[s.type] || "•"} ${s.titre}` : ""; }
+
+function ligneDemain() {
+  const auj = aujourdhuiISO(), p = planDeDemain(state, auj);
+  if (p.etat === "seance" && p.seance) return `<p class="demain">Demain probablement : <b>${nomCourt(p.seance)}</b> <small>(${p.seance.duree})</small> — prévois ton créneau dès maintenant.</p>`;
+  if (p.etat === "repos") return `<p class="demain">Demain : repos conseillé (6 jours d'entraînement d'affilée).</p>`;
+  return "";
 }
 
 function renderAujourdhui() {
-  const el = document.getElementById("aujourdhui");
-  const dates = datesDuBloc(), auj = aujourdhuiISO();
-  let txt, s = null, wi = 0;
-  if (auj < dates[0]) {
-    s = BLOC.semaines[0].seances[0];
-    txt = `Le bloc commence ${dateJolie(dates[0]).toLowerCase()}`;
+  const auj = aujourdhuiISO(), el = document.getElementById("aujourdhui");
+  const p = planDuJour(state, auj);
+  const msgs = messagesDuJour(state, auj).map(m => `<p class="aj-msg">${m}</p>`).join("");
+  const boutons = (avecAutre) => `<div class="aj-actions">
+      ${avecAutre ? `<button onclick="passerSeance()">🔄 Autre séance</button>` : ""}
+      <button onclick="pasLeTemps()">⏳ Pas le temps aujourd'hui</button>
+      <button onclick="ouvrirLibre()">✍️ J'ai fait autre chose</button>
+    </div>`;
+  let html = "";
+  if (p.etat === "termine") {
+    html = `<div class="aj-entete fait">🎉 Bloc terminé</div><p>Tests faits, bilan rempli : envoie-moi l'export .json (menu ⋯) et on construit la préparation du triathlon M.</p>`;
+  } else if (p.etat === "fait") {
+    html = `<div class="aj-entete fait">✓ Fait aujourd'hui</div>` +
+      p.fait.map(a => a.libre ? `<p>✨ ${a.titre}</p>` : renderSeance(seanceDepuisFaite(a))).join("") + ligneDemain();
+  } else if (p.etat === "off") {
+    html = `<div class="aj-entete">Jour off</div>
+      <p>Pas de souci : rien n'est perdu, la séance attend demain.</p>${ligneDemain()}
+      <div class="aj-actions"><button onclick="annulerOff()">↩︎ Finalement, j'ai le temps</button>
+      <button onclick="ouvrirLibre()">✍️ J'ai fait autre chose</button></div>`;
+  } else if (p.etat === "repos") {
+    html = `<div class="aj-entete">Repos conseillé</div>
+      <p>Tu t'es entraîné 6 jours sur les 6 derniers : un jour off aide à progresser. Tu peux quand même y aller.</p>
+      <div class="aj-actions"><button onclick="set('journal.${auj}.forcer', true); renderTout()">💪 Je veux m'entraîner</button>
+      <button onclick="ouvrirLibre()">✍️ J'ai fait autre chose</button></div>${ligneDemain()}`;
+  } else if (!p.seance) {
+    html = `<div class="aj-entete">Rien de possible aujourd'hui</div>
+      <p>Tu as écarté toutes les séances. Repos, ou note ce que tu as fait.</p>
+      <div class="aj-actions"><button onclick="set('journal.${auj}.passer', ''); renderTout()">↩︎ Revoir les propositions</button>
+      <button onclick="ouvrirLibre()">✍️ J'ai fait autre chose</button></div>`;
   } else {
-    const t = seanceDuJour();
-    if (!t || !t.seance) { el.hidden = true; return; }
-    s = t.seance; wi = t.semaineIndex; txt = "Aujourd'hui";
+    const s = p.seance;
+    html = `<div class="aj-entete">Aujourd'hui</div>${renderSeance(s, true)}${boutons(p.autres.length > 0)}${ligneDemain()}`;
   }
-  const fait = estFaite(s.id);
-  el.hidden = false;
-  el.className = "aujourdhui-bandeau" + (fait ? " fait" : "");
-  el.innerHTML = `<span class="aj-label">${txt}${fait ? " · ✓ fait" : ""}</span>
-    <b>${ICONES[s.type] || "•"} ${s.titre.replace(/^\w+ · /, "")}</b>
-    <small>${s.duree} — ${s.objectif}</small>
-    <span class="aj-lien">voir la séance ↓</span>`;
-  el.onclick = () => {
-    semaineAffichee = wi; renderChips(); renderSeances();
-    const carte = document.getElementById(`s-${s.id}`);
-    carte.classList.add("ouverte");
-    carte.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
+  el.innerHTML = msgs + html;
 }
 
-/* ============================================================
-   3. SEMAINES + SÉANCES
-   ============================================================ */
-let semaineAffichee = (() => {
-  const dates = datesDuBloc(), auj = aujourdhuiISO();
-  if (auj < dates[0]) return 0;
-  if (auj > dates[dates.length - 1]) return BLOC.semaines.length - 1;
-  return Math.floor(dates.indexOf(auj) / 7);
-})();
-
-function renderChips() {
-  document.getElementById("chips-semaines").innerHTML = BLOC.semaines.map((sem, i) =>
-    `<button class="chip ${i === semaineAffichee ? "actif" : ""}"
-       onclick="semaineAffichee=${i};renderChips();renderSeances()">Semaine ${sem.num}</button>`).join("");
-  const sem = BLOC.semaines[semaineAffichee];
-  document.getElementById("theme-semaine").innerHTML = `<b>${sem.theme}</b>${sem.focus ? `<br>${sem.focus}` : ""}`;
+/* Reconstruit la carte d'une séance faite (pour pouvoir compléter ressenti, date…) */
+function seanceDepuisFaite(a) {
+  if (a.piste === "test") return seanceTest(a.id);
+  return fabriquerSeance(a.piste, a.n, a.etape ?? 0) || { id: a.id, type: a.type, titre: a.titre, duree: "", objectif: "", contenu: [], pourquoi: "" };
 }
 
+function passerSeance() {
+  const auj = aujourdhuiISO(), p = planDuJour(state, auj);
+  if (!p.seance) return;
+  const cle = p.seance.piste === "test" || p.seance.id.startsWith("test-") ? p.seance.id : p.seance.piste;
+  const liste = (state[`journal.${auj}.passer`] || "").split(",").filter(Boolean);
+  liste.push(cle);
+  set(`journal.${auj}.passer`, liste.join(","));
+  renderTout();
+}
+function pasLeTemps() { set(`journal.${aujourdhuiISO()}.off`, true); renderTout(); }
+function annulerOff() { const k = `journal.${aujourdhuiISO()}.off`; delete state[k]; save(); renderTout(); }
+
+/* ---------- Carte de séance ---------- */
 function boutonsStatut(id) {
   const s = statutDe(id);
   const b = (val, txt, titre) =>
     `<button class="st ${s === val ? "actif" : ""}" data-s="${val}" title="${titre}"
        onclick="event.stopPropagation(); toucherStatut('${id}', '${val}')">${txt}</button>`;
-  return `<div class="statuts">${b("faite", "✓", "Faite")}${b("adaptee", "≈", "Faite en adapté")}${b("pas-pu", "✗", "Pas pu")}</div>`;
+  return `<div class="statuts">${b("faite", "✓", "Faite en entier : l'étape avance")}${b("adaptee", "≈", "Version courte ou adaptée : elle compte, mais on refait l'étape")}</div>`;
 }
 
-/* Un tap = statut ; re-tap sur le même = retour à « à faire » */
+/* Un tap = statut ; re-tap sur le même = annulé */
 function toucherStatut(id, val) {
   const nouveau = statutDe(id) === val ? "" : val;
-  set(`seance.${id}.statut`, nouveau);
-  if ((nouveau === "faite" || nouveau === "adaptee") && !state[`seance.${id}.faitele`])
-    set(`seance.${id}.faitele`, aujourdhuiISO());
-  majSeanceDOM(id);
-  renderStats(); renderGraphs(); renderAujourdhui();
-}
-
-function majSeanceDOM(id) {
-  const el = document.getElementById(`s-${id}`);
-  if (!el) return;
-  const s = statutDe(id);
-  el.classList.toggle("faite", estFaite(id));
-  el.classList.toggle("paspu", s === "pas-pu");
-  el.querySelectorAll(".st").forEach(b => b.classList.toggle("actif", b.dataset.s === s));
-  const raison = el.querySelector(".raison");
-  if (raison) {
-    raison.classList.toggle("visible", s === "adaptee" || s === "pas-pu");
-    raison.querySelector("span").textContent = s === "pas-pu" ? "Pourquoi pas pu ?" : "Quoi à la place / de changé ?";
+  const s = SEANCES_VUES[id];
+  if (nouveau && s) {
+    if (state[`seance.${id}.etape`] === undefined) state[`seance.${id}.etape`] = s.etape ?? 0;
+    state[`seance.${id}.titre`] = s.titre;
+    state[`seance.${id}.type`] = s.type;
+    if (!state[`seance.${id}.faitele`]) state[`seance.${id}.faitele`] = aujourdhuiISO();
   }
-  const date = el.querySelector(`[data-role="faitele"]`);
-  if (date) date.value = state[`seance.${id}.faitele`] ?? "";
+  if (!nouveau) delete state[`seance.${id}.faitele`];
+  set(`seance.${id}.statut`, nouveau);
+  renderTout();
 }
 
-function renderSeance(s) {
+function renderSeance(s, ouverte) {
+  SEANCES_VUES[s.id] = s;
   const st = statutDe(s.id);
-  const classe = estFaite(s.id) ? "faite" : (st === "pas-pu" ? "paspu" : "");
-  const raisonVisible = st === "adaptee" || st === "pas-pu";
-  const t = seanceDuJour();
-  const estAuj = t && t.seance && t.seance.id === s.id;
+  const classe = estFaite(s.id) ? "faite" : "";
+  const raisonVisible = st === "adaptee";
   return `
-  <div class="seance ${classe} ${estAuj ? "aujourdhui ouverte" : ""}" id="s-${s.id}">
+  <div class="seance ${classe} ${ouverte ? "ouverte" : ""}" id="s-${s.id}">
     <div class="ligne" onclick="this.parentElement.classList.toggle('ouverte')">
       <div class="sport ${s.type}">${ICONES[s.type] || "•"}</div>
-      <div class="nom"><b>${estAuj ? '<span class="tag-auj">Aujourd\'hui</span> ' : ""}${s.titre}${s.optionnel ? " · bonus" : ""}</b><small>${s.duree} — ${s.objectif}</small></div>
+      <div class="nom"><b>${s.titre}</b><small>${s.duree}${s.objectif ? " — " + s.objectif : ""}</small></div>
       ${boutonsStatut(s.id)}
     </div>
     <div class="details">
       <ul>${s.contenu.map(c => `<li>${c}</li>`).join("")}</ul>
-      <button class="lien-pourquoi" onclick="this.nextElementSibling.classList.toggle('ouvert')">pourquoi cette séance ?</button>
-      <div class="pourquoi">${s.pourquoi}</div>
+      ${s.pourquoi ? `<button class="lien-pourquoi" onclick="this.nextElementSibling.classList.toggle('ouvert')">pourquoi cette séance ?</button>
+      <div class="pourquoi">${s.pourquoi}</div>` : ""}
       <div class="raison ${raisonVisible ? "visible" : ""}">
-        <label class="champ"><span>${st === "pas-pu" ? "Pourquoi pas pu ?" : "Quoi à la place / de changé ?"}</span>
+        <label class="champ"><span>Qu'est-ce qui a changé ? (version courte, douleur…)</span>
         <input type="text" value="${(state[`seance.${s.id}.raison`] ?? "").replace(/"/g, "&quot;")}"
           onchange="set('seance.${s.id}.raison', this.value)"></label>
       </div>
       <div class="grille">
         <label class="champ"><span>Faite le</span>
           <input type="date" data-role="faitele" value="${state[`seance.${s.id}.faitele`] ?? ""}"
-            onchange="set('seance.${s.id}.faitele', this.value)"></label>
+            onchange="set('seance.${s.id}.faitele', this.value); renderTout()"></label>
         <label class="champ"><span>Difficulté</span>
           <input type="number" min="1" max="10" value="${state[`seance.${s.id}.rpe`] ?? ""}"
             onchange="set('seance.${s.id}.rpe', this.value)"></label>
@@ -289,49 +280,84 @@ function renderSeance(s) {
   </div>`;
 }
 
-/* Séances libres de la semaine affichée */
-function renderLibres() {
-  const w = BLOC.semaines[semaineAffichee].num;
-  const n = +state[`extra.w${w}.count`] || 0;
-  let html = "";
-  for (let i = 0; i < n; i++) {
-    const p = `extra.w${w}.${i}`;
-    html += `
-    <div class="seance faite">
-      <div class="ligne" style="cursor:default">
-        <div class="sport repos">✨</div>
-        <div class="nom" style="display:flex;gap:8px">
-          <input type="text" placeholder="Séance libre (quoi ?)" value="${(state[`${p}.titre`] ?? "").replace(/"/g, "&quot;")}"
-            style="flex:1;background:var(--bg);border:1px solid var(--bord);border-radius:10px;padding:8px 10px"
-            onchange="set('${p}.titre', this.value)">
-          <input type="date" value="${state[`${p}.date`] ?? ""}"
-            style="background:var(--bg);border:1px solid var(--bord);border-radius:10px;padding:8px"
-            onchange="set('${p}.date', this.value)">
-        </div>
-        <button class="suppr" onclick="supprimerLibre(${w}, ${i})">✕</button>
-      </div>
-    </div>`;
-  }
-  html += `<button class="ajout-libre" onclick="set('extra.w${w}.count', ${n + 1}); renderSeances()">+ Séance libre (non prévue)</button>`;
-  return html;
+/* ---------- « J'ai fait autre chose » ---------- */
+function ouvrirLibre() {
+  document.getElementById("libre-date").value = aujourdhuiISO();
+  document.getElementById("libre-titre").value = "";
+  document.getElementById("dlg-libre").showModal();
+}
+function enregistrerLibre(e) {
+  e.preventDefault();
+  const titre = document.getElementById("libre-titre").value.trim();
+  const n = +state["libre.count"] || 0;
+  state[`libre.${n}.type`] = document.getElementById("libre-type").value;
+  state[`libre.${n}.titre`] = titre || "Séance libre";
+  state[`libre.${n}.date`] = document.getElementById("libre-date").value || aujourdhuiISO();
+  set("libre.count", n + 1);
+  document.getElementById("dlg-libre").close();
+  renderTout();
+}
+function supprimerLibre(i) {
+  if (!confirm("Supprimer cette séance ?")) return;
+  ["type", "titre", "date"].forEach(c => delete state[`libre.${i}.${c}`]);
+  save(); renderTout();
 }
 
-function supprimerLibre(w, i) {
-  const champs = ["titre", "date", "donnees", "ressenti"];
-  const n = +state[`extra.w${w}.count`] || 0;
-  if (champs.some(c => state[`extra.w${w}.${i}.${c}`]) && !confirm("Supprimer cette séance libre ?")) return;
-  for (let j = i; j < n - 1; j++) champs.forEach(c => {
-    const suiv = state[`extra.w${w}.${j + 1}.${c}`];
-    if (suiv === undefined) delete state[`extra.w${w}.${j}.${c}`]; else state[`extra.w${w}.${j}.${c}`] = suiv;
-  });
-  champs.forEach(c => delete state[`extra.w${w}.${n - 1}.${c}`]);
-  state[`extra.w${w}.count`] = n - 1;
-  save(); renderSeances();
+/* ============================================================
+   4. MA PROGRESSION + MES DERNIERS JOURS
+   ============================================================ */
+function renderProgression() {
+  const auj = aujourdhuiISO();
+  const faites = seancesFaites(state);
+  const barre = (fait, total) => `<div class="prog-barre"><div style="width:${Math.min(100, Math.round(100 * fait / total))}%"></div></div>`;
+  const listeEtapes = (piste, libelles) => {
+    const max = faites.filter(s => s.piste === piste && s.statut === "faite").reduce((m, s) => Math.max(m, (s.etape ?? 0) + 1), 0);
+    return `<details class="rp-plus"><summary>Voir toutes les étapes</summary><ol class="etapes">${libelles.map((l, i) =>
+      `<li class="${i < max ? "ok" : ""}">${i < max ? "✓ " : ""}${l}</li>`).join("")}</ol></details>`;
+  };
+  const eC = Math.min(prochaineEtape(state, "course", auj), COURSE_ETAPES.length);
+  const eN = Math.min(prochaineEtape(state, "natation", auj), NAT_ETAPES.length);
+  const nMuscu = faites.filter(s => s.piste === "muscu").length;
+  const prochMuscu = seanceMuscu(nMuscu + 1);
+  const nVelo = faites.filter(s => s.piste === "velo").length;
+  const pause = natationEnPause(state);
+  const tests = testsDebloques(state, auj);
+  document.getElementById("progression").innerHTML = `
+    <div class="prog">
+      <div class="prog-titre">🏃 Course <span>étape ${Math.min(eC + 1, COURSE_ETAPES.length)}/${COURSE_ETAPES.length}</span></div>
+      ${barre(eC, COURSE_ETAPES.length)}
+      <small>${eC < COURSE_ETAPES.length ? `Prochaine : ${COURSE_ETAPES[eC]}` : "Progression finie : place aux tests !"}</small>
+      ${listeEtapes("course", COURSE_ETAPES)}
+    </div>
+    <div class="prog ${pause ? "en-pause" : ""}">
+      <div class="prog-titre">🏊 Natation <span>${pause ? "en pause" : `étape ${Math.min(eN + 1, NAT_ETAPES.length)}/${NAT_ETAPES.length}`}</span></div>
+      ${barre(eN, NAT_ETAPES.length)}
+      <small>${pause ? "Le vélo prend sa place. Tu reprendras à l'étape " + (eN + 1) + "." : (eN < NAT_ETAPES.length ? `Prochaine : ${seanceNatation(1, eN).titre.split(" — ")[1]}` : "Progression finie")}</small>
+      <button class="prog-bouton" onclick="set('reglage.natation', ${pause ? "'actif'" : "'pause'"}); renderTout()">${pause ? "▶︎ Je peux de nouveau nager" : "⏸ Mettre la natation en pause"}</button>
+      ${listeEtapes("natation", NAT_ETAPES.map((e, i) => seanceNatation(1, i).titre.split(" — ")[1]))}
+    </div>
+    <div class="prog">
+      <div class="prog-titre">🏋️ Muscu <span>${nMuscu} faite${nMuscu > 1 ? "s" : ""}</span></div>
+      <small>Prochaine : ${prochMuscu.titre.replace("Muscu · ", "")} (rotation Upper A → Lower → Upper B)</small>
+    </div>
+    <div class="prog">
+      <div class="prog-titre">🚴 Vélo <span>${nVelo} fait${nVelo > 1 ? "s" : ""}</span></div>
+      <small>Prochain : ${prochaineSeance(state, "velo", auj).titre.replace("Vélo — ", "")}</small>
+    </div>
+    <p class="aj-note">${tests ? "🧪 Les tests de fin de bloc sont débloqués : le site te les propose un par un." :
+      "🧪 Les tests de fin de bloc arrivent quand tu auras fini la progression course."}</p>`;
 }
 
-function renderSeances() {
-  const sem = BLOC.semaines[semaineAffichee];
-  document.getElementById("liste-seances").innerHTML = sem.seances.map(renderSeance).join("") + renderLibres();
+function renderHistorique() {
+  const auj = aujourdhuiISO();
+  const liste = activitesEntre(state, decalerDate(auj, -13), auj).sort((a, b) => b.date.localeCompare(a.date));
+  document.getElementById("historique").innerHTML = liste.length ? liste.map(a => a.libre
+    ? `<div class="seance faite"><div class="ligne" style="cursor:default">
+        <div class="sport ${a.type}">${ICONES[a.type] || "✨"}</div>
+        <div class="nom"><b>${a.titre}</b><small>${dateJolie(a.date)} · séance libre (${TYPE_LABELS[a.type] || "autre"})</small></div>
+        <button class="suppr" onclick="supprimerLibre(${a.i})">✕</button></div></div>`
+    : renderSeance(seanceDepuisFaite(a)).replace("<small>", `<small>${dateJolie(a.date)} · `)).join("")
+    : `<p class="aj-note">Rien encore sur les 14 derniers jours. La première séance est en haut de la page.</p>`;
 }
 
 /* ============================================================
@@ -383,19 +409,20 @@ function barres(donnees) {
 }
 
 function renderGraphs() {
-  const dates = datesDuBloc();
-  const toutes = BLOC.semaines.flatMap(s => s.seances);
+  const auj = aujourdhuiISO();
+  const nbSem = Math.max(1, Math.min(20, Math.floor(Math.max(0, (new Date(auj) - new Date(BLOC.debut)) / 864e5) / 7) + 1));
+  const dates = []; for (let i = 0; i < nbSem * 7; i++) dates.push(decalerDate(BLOC.debut, i));
+  const acts = activites(state);
+  const parSem = Array.from({ length: nbSem }, (_, w) => dates.slice(w * 7, w * 7 + 7));
   document.getElementById("graphs").innerHTML = `
     <div class="graph"><div class="titre-graph">Poids (kg)</div>${sparkline(dates.map(d => state[`journal.${d}.poids`] ?? null))}</div>
     <div class="graph"><div class="titre-graph">Tour de taille (cm)</div>${sparkline(dates.map(d => state[`journal.${d}.taille`] ?? null))}</div>
     <div class="graph"><div class="titre-graph">Énergie (1-5)</div>${sparkline(dates.map(d => { const v = state[`journal.${d}.energie`]; return v === undefined || v === "" ? null : v; }))}</div>
     <div class="graph"><div class="titre-graph">Douleur pied au réveil</div>${sparkline(dates.map(d => { const v = state[`journal.${d}.pied_douleur`]; return v === undefined || v === "" ? null : v; }))}</div>
-    <div class="graph"><div class="titre-graph">Séances faites / semaine</div>${barres(BLOC.semaines.map((sem, wi) => ({
-      x: sem.num, y: sem.seances.filter(s => !s.optionnel && estFaite(s.id)).length, max: sem.seances.filter(s => !s.optionnel).length })))}</div>
-    <div class="graph"><div class="titre-graph">Rééduc pied / semaine</div>${barres(BLOC.semaines.map((sem, wi) => ({
-      x: sem.num, y: dates.slice(wi * 7, wi * 7 + 7).filter(d => state[`journal.${d}.pied`]).length, max: 7 })))}</div>
-    <div class="graph"><div class="titre-graph">Routine posture / semaine</div>${barres(BLOC.semaines.map((sem, wi) => ({
-      x: sem.num, y: dates.slice(wi * 7, wi * 7 + 7).filter(d => state[`journal.${d}.posture`]).length, max: 7 })))}</div>`;
+    <div class="graph"><div class="titre-graph">Jours d'entraînement / semaine</div>${barres(parSem.map((js, w) => ({
+      x: w + 1, y: new Set(acts.filter(a => js.includes(a.date)).map(a => a.date)).size, max: 6 })))}</div>
+    <div class="graph"><div class="titre-graph">Rééduc pied / semaine</div>${barres(parSem.map((js, w) => ({
+      x: w + 1, y: js.filter(d => state[`journal.${d}.pied`]).length, max: 7 })))}</div>`;
 }
 
 /* ============================================================
@@ -435,13 +462,16 @@ function ouvrirArchives() {
 /* ============================================================
    Démarrage
    ============================================================ */
+function renderTout() {
+  renderStats(); renderAujourdhui(); renderProgression(); renderHistorique(); renderGraphs();
+}
+
 document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("sous-titre").textContent = BLOC.nom + " · " + dateJolie(datesDuBloc()[0]).split(" ").slice(1).join(" ") + " → " + dateJolie(datesDuBloc()[datesDuBloc().length - 1]).split(" ").slice(1).join(" ");
-  renderStats(); renderAujourdhui(); renderJour(); renderChips(); renderSeances(); renderTests(); renderGraphs();
+  document.getElementById("sous-titre").textContent = BLOC.nom + " · depuis le " + dateJolie(BLOC.debut).split(" ").slice(1).join(" ");
+  renderTout(); renderJour(); renderTests();
   document.getElementById("liste-nutrition").innerHTML = htmlNutrition(true);
   document.getElementById("liste-routines").innerHTML =
     htmlRoutine(ROUTINE_PIED, true) + htmlRoutine(ROUTINE_POSTURE, true);
-  // Fermer le menu ⋯ quand on clique ailleurs
   document.addEventListener("click", e => {
     const menu = document.getElementById("menu");
     if (menu.open && !menu.contains(e.target)) menu.open = false;

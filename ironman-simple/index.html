@@ -32,7 +32,7 @@
   <div class="stats" id="stats"></div>
 
   <!-- La séance du jour : la seule chose à regarder en ouvrant le site -->
-  <button class="aujourdhui-bandeau" id="aujourdhui" hidden></button>
+  <div class="carte-auj" id="aujourdhui"></div>
 
   <!-- Journal rapide du jour -->
   <h2>Journal</h2>
@@ -50,11 +50,17 @@
     <div class="contenu-section" id="liste-nutrition"></div>
   </details>
 
-  <!-- Semaine + séances -->
-  <h2>Séances</h2>
-  <div class="semaines" id="chips-semaines"></div>
-  <p class="theme-semaine" id="theme-semaine"></p>
-  <div class="seances" id="liste-seances"></div>
+  <!-- Progression de chaque sport -->
+  <details class="section" id="section-progression" open>
+    <summary>📈 Ma progression <span class="chevron">›</span></summary>
+    <div class="contenu-section" id="progression"></div>
+  </details>
+
+  <!-- Ce qui a été fait ces 14 derniers jours -->
+  <details class="section" id="section-historique">
+    <summary>🗓 Mes 14 derniers jours <span class="chevron">›</span></summary>
+    <div class="contenu-section seances" id="historique"></div>
+  </details>
 
   <!-- Tests (repliés) -->
   <details class="section" id="section-tests">
@@ -63,8 +69,8 @@
   </details>
 
   <!-- Progression (repliée) -->
-  <details class="section" open>
-    <summary>📈 Progression <span class="chevron">›</span></summary>
+  <details class="section">
+    <summary>📊 Graphiques <span class="chevron">›</span></summary>
     <div class="contenu-section graphs" id="graphs"></div>
   </details>
 </main>
@@ -73,13 +79,14 @@
 <dialog id="dlg-aide">
   <button class="fermer" onclick="this.closest('dialog').close()">✕</button>
   <h3>L'essentiel</h3>
-  <p><b>Chaque jour, une séance, toujours au même jour :</b> Lun natation · Mar vélo (2e natation à partir du 28 déc.) · Mer Lower · Jeu Upper A · Ven course · Sam Upper B · Dim course. Le bandeau orange en haut te dit quoi faire aujourd'hui.</p>
-  <p><b>Statuts :</b> ✓ faite · ≈ faite en adapté ou en version courte (dis quoi) · ✗ pas pu (dis pourquoi, je le lis). Re-taper = annuler. Taper sur une séance = détails.</p>
-  <p><b>Pas d'énergie ?</b> Collation, 20 min, échauffement + 1re série. Toujours rien : la version courte écrite en bas de chaque séance. Elle compte (≈). Un jour raté ne se rattrape pas : le lendemain, tu fais la séance du lendemain.</p>
-  <p><b>Muscu :</b> épaules en premier, chaque série à 0-2 reps de l'échec. <b>Vélo :</b> zone 2, tu peux parler. <b>Course :</b> allure conversation, douleur pied &gt; 3/10 = stop au milieu de la séance. <b>Natation :</b> technique d'abord, s'arrêter 15 s au bord, ça compte.</p>
-  <p><b>Manger :</b> sans compter — 1 paume de protéines à chaque repas, collation avant la séance. Détail dans « 🍽 Manger sans compter ». La moyenne du poids sur 7 jours décide toutes les 2 semaines.</p>
-  <p><b>Chaque matin (20 s) :</b> poids à jeun, énergie et faim de 1 à 5, douleur pied au réveil, rééduc pied + posture. Tour de taille le lundi.</p>
-  <p><b>Examens</b> (10 déc., 4 janv., 22 janv.) : c'est déjà prévu dans les séances concernées.</p>
+  <p><b>Chaque jour, le site te propose UNE séance</b>, dans le cadre en haut : le sport le plus en retard sur tes 7 derniers jours (objectif : 3 muscu, 2 courses, 1 vélo, 1 à 2 natations). Tu l'ouvres, tu la fais, tu tapes ✓.</p>
+  <p><b>Rater un jour ne casse rien.</b> Chaque sport avance par étapes : demain, tu reprends exactement où tu en étais. Jamais deux séances le même jour pour rattraper.</p>
+  <p><b>✓</b> = faite en entier, l'étape avance. <b>≈</b> = version courte ou adaptée : elle compte, mais la prochaine fois tu refais la même étape. Re-taper = annuler.</p>
+  <p><b>🔄 Autre séance</b> si celle du jour ne te va pas. <b>⏳ Pas le temps aujourd'hui</b> pour un jour off. <b>✍️ J'ai fait autre chose</b> pour noter ce que tu as vraiment fait (il compte dans ta semaine).</p>
+  <p><b>Le pied est protégé tout seul</b> : 48 h entre deux courses, jamais de course juste avant ou après le Lower, et une étape en moins après 10 jours sans courir. Douleur &gt; 3/10 pendant = stop au milieu, ≈.</p>
+  <p><b>Natation en pause</b> tant que tu ne peux pas nager : le vélo la remplace. Réactive-la dans « Ma progression ».</p>
+  <p><b>Manger :</b> sans compter, détail dans « 🍽 Manger sans compter ». <b>Chaque matin (20 s) :</b> poids, énergie et faim de 1 à 5, douleur pied au réveil, rééduc pied + posture.</p>
+  <p><b>Les tests</b> arrivent quand tu as fini la progression course : le site te les propose.</p>
   <p><b>Sauvegarde :</b> tout est automatique. Excel = à partager / archiver. .json = à envoyer au coach chaque dimanche.</p>
   <p style="color:var(--texte-2)">Pour les explications détaillées de chaque séance : bouton « pourquoi ? » dans la séance, ou la version complète du site (menu ⋯).</p>
 </dialog>
@@ -92,6 +99,25 @@
   <div id="archives-contenu"></div>
 </dialog>
 
+<!-- « J'ai fait autre chose » -->
+<dialog id="dlg-libre">
+  <button class="fermer" onclick="this.closest('dialog').close()">✕</button>
+  <h3>J'ai fait autre chose</h3>
+  <form onsubmit="enregistrerLibre(event)" class="form-libre">
+    <label class="champ"><span>Quel sport ?</span>
+      <select id="libre-type">
+        <option value="velo">🚴 Vélo</option><option value="muscu">🏋️ Muscu</option>
+        <option value="course">🏃 Course</option><option value="natation">🏊 Natation</option>
+        <option value="marche">🚶 Marche</option><option value="autre">✨ Autre</option>
+      </select></label>
+    <label class="champ"><span>Quoi, combien de temps ?</span>
+      <input id="libre-titre" type="text" placeholder="Ex : 40 min de vélo zone 2"></label>
+    <label class="champ"><span>Quand ?</span><input id="libre-date" type="date"></label>
+    <p class="aj-note">Ça compte dans ta semaine (le site en tient compte pour la suite), mais ça ne fait pas avancer les étapes.</p>
+    <button type="submit" class="btn-principal">Enregistrer</button>
+  </form>
+</dialog>
+
 <div id="toast">✓ sauvegardé</div>
 
 <!-- Les DONNÉES et l'EXPORT sont partagés avec le site complet : une seule source de vérité.
@@ -99,6 +125,7 @@
      les données depuis le fichier disque avant le démarrage des autres scripts. -->
 <script src="../ironman-coach/assets/sync-fichier.js"></script>
 <script src="../ironman-coach/assets/programme-data.js"></script>
+<script src="../ironman-coach/assets/file-seances.js"></script>
 <script src="app.js"></script>
 <script src="../ironman-coach/assets/vendor/xlsx.full.min.js"></script>
 <script src="../ironman-coach/assets/export.js"></script>

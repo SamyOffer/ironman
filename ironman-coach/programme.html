@@ -12,70 +12,61 @@
 
   <main class="content">
     <h1>Programme du bloc</h1>
-    <p class="lead">14 semaines · une séance par jour, toujours au même jour (indiqué dans le titre). Chaque séance a sa version courte pour les jours sans énergie.</p>
+    <p class="lead">Chaque sport avance par étapes. Le site simple te propose chaque jour la bonne séance ; ici, tu vois toute la progression.</p>
 
     <!-- Aides repliées par défaut : à consulter en cas d'oubli, pas imposées -->
     <details class="aide">
-      <summary>ℹ️ Comment utiliser cette page (si besoin)</summary>
-      <p>Chaque jour a sa séance : Lun natation · Mar vélo (2e natation dès le 28 déc.) · Mer Lower · Jeu Upper A · Ven course · Sam Upper B · Dim course. Sur chaque carte : le <strong>statut</strong>
-      (✓ Faite / ≈ Faite en adapté / ✗ Pas pu — la raison t'est demandée et je la lis),
-      la date réelle, la difficulté (1&nbsp;=&nbsp;promenade, 10&nbsp;=&nbsp;à l'agonie),
-      tes données (format libre) et ton ressenti. Le bouton en bas de chaque semaine
-      permet d'ajouter une <strong>séance libre</strong> non prévue. Rééduc pied 5 min
-      tous les jours, à cocher dans le <a href="journal.html">journal</a>. Douleur
-      &gt; 3/10 qui monte : on arrête et on me le raconte dans le ressenti.</p>
+      <summary>ℹ️ Comment ça marche (si besoin)</summary>
+      <p>Plus de calendrier : chaque jour, le <a href="../ironman-simple/">site simple</a> te propose
+      une séance selon ce que tu as fait ces 7 derniers jours. ✓ = faite en entier, l'étape avance ;
+      ≈ = version courte ou adaptée, on refait l'étape. Rater un jour ne casse rien.</p>
     </details>
 
     <details class="aide">
-      <summary>🧩 Règles pour agencer ta semaine (si besoin)</summary>
+      <summary>🧩 Les règles du système (si besoin)</summary>
       <ul id="regles-agencement"></ul>
     </details>
 
-    <!-- Les 4 semaines sont générées ici depuis programme-data.js -->
+    <!-- Les progressions sont générées ici depuis programme-data.js + file-seances.js -->
     <div id="semaines"></div>
   </main>
 </div>
 
 <script src="assets/sync-fichier.js"></script>
 <script src="assets/programme-data.js"></script>
+<script src="assets/file-seances.js"></script>
 <script src="assets/main.js"></script>
 <script src="assets/seance.js"></script>
 <script>
-/* ---------- Rendu du programme ----------
-   Une semaine = un accordéon <details> contenant son menu de séances
-   + une zone "séances libres". La semaine EN COURS est ouverte. */
+/* ---------- Rendu des progressions ----------
+   Une piste = un accordéon avec toutes ses étapes ; les étapes passées sont cochées.
+   La séance du jour se fait depuis le site simple. */
 "use strict";
 
 document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("regles-agencement").innerHTML =
-    AGENCEMENT.map(r => `<li>${r}</li>`).join("");
-
-  const dates = datesDuBloc();
-  const aujourdhui = aujourdhuiISO();
-  const conteneur = document.getElementById("semaines");
-
-  conteneur.innerHTML = BLOC.semaines.map((sem, wi) => {
-    const debut = dates[wi * 7], fin = dates[wi * 7 + 6];
-    const enCours = aujourdhui >= debut && aujourdhui <= fin;
-    const ouverte = enCours || (aujourdhui < dates[0] && wi === 0);
-    return `
-      <details ${ouverte ? "open" : ""}>
-        <summary>Semaine ${sem.num} — ${sem.theme}
-          <span style="color:var(--text-2);font-weight:400;font-size:.85rem">
-            (${dateJolie(debut).split(" ").slice(1).join(" ")} → ${dateJolie(fin).split(" ").slice(1).join(" ")})
-          </span>
-        </summary>
-        <div class="box imp"><strong>Le focus de la semaine</strong>${sem.focus}</div>
-        ${sem.seances.map(s => renderSeance(s)).join("")}
-        <div id="extras-w${sem.num}"></div>
-      </details>`;
-  }).join("");
-
-  bindAll(conteneur); // connecte tous les champs générés à la sauvegarde
-
-  // Séances libres : rendu + bouton d'ajout, par semaine
-  BLOC.semaines.forEach(sem =>
-    initExtras(sem.num, document.getElementById(`extras-w${sem.num}`)));
+  document.getElementById("regles-agencement").innerHTML = AGENCEMENT.map(r => `<li>${r}</li>`).join("");
+  const auj = aujourdhuiISO(), plan = planDuJour(state, auj);
+  const faites = seancesFaites(state);
+  const passees = piste => faites.filter(f => f.piste === piste && f.statut === "faite").reduce((m, f) => Math.max(m, (f.etape ?? 0) + 1), 0);
+  const piste = (titre, nom, total, fabrique, extra) => {
+    const fait = passees(nom), prochaine = Math.min(prochaineEtape(state, nom, auj), total - 1);
+    return `<details ${nom === "course" ? "open" : ""}><summary>${titre} — ${fait}/${total} étapes passées${extra || ""}</summary>
+      ${Array.from({ length: total }, (_, i) => {
+        const s = fabrique(i);
+        return `<details class="card" ${i === prochaine ? "open" : ""}><summary>${i < fait ? "✓ " : (i === prochaine ? "▶︎ " : "")}${s.titre}</summary>
+          <p><strong>${s.objectif}</strong></p><ul>${s.contenu.map(c => `<li>${c}</li>`).join("")}</ul></details>`;
+      }).join("")}</details>`;
+  };
+  const muscu = ROTATION_MUSCU.map((c, i) => seanceMuscu(i + 1));
+  document.getElementById("semaines").innerHTML = `
+    <div class="box imp"><strong>Aujourd'hui</strong>${plan.seance ? plan.seance.titre : (plan.etat === "fait" ? "séance faite ✓" : "repos / jour off")}
+      — <a href="../ironman-simple/">ouvrir le site simple</a></div>
+    ${piste("🏃 Course", "course", COURSE_ETAPES.length, i => seanceCourse(1, i))}
+    ${piste("🏊 Natation", "natation", NAT_ETAPES.length, i => seanceNatation(1, i), natationEnPause(state) ? " (en pause)" : "")}
+    <details><summary>🏋️ Muscu — rotation Upper A → Lower → Upper B</summary>
+      ${muscu.map(s => `<details class="card"><summary>${s.titre}</summary><p><strong>${s.objectif}</strong></p><ul>${s.contenu.map(c => `<li>${c}</li>`).join("")}</ul></details>`).join("")}</details>
+    <details><summary>🚴 Vélo — ${VELO_ETAPES.length} étapes, puis les 3 dernières en boucle</summary>
+      ${VELO_ETAPES.map((v, i) => `<div class="card">${i + 1}. ${v}</div>`).join("")}</details>`;
 });
 </script>
 </body>

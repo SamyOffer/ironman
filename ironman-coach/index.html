@@ -12,7 +12,7 @@
 
   <main class="content">
     <h1>Tableau de bord</h1>
-    <p class="lead">Bloc 4 · Reprise claire, une séance par jour — du 16 novembre 2026 au 21 février 2027</p>
+    <p class="lead">Bloc 4 · Reprise claire, une séance par jour en file d'attente — depuis le 16 novembre 2026</p>
 
     <details class="aide">
       <summary>ℹ️ L'objectif du bloc + comment marche la sauvegarde (si besoin)</summary>
@@ -31,7 +31,7 @@
     <div class="stats" id="stats"></div>
 
     <!-- La semaine en cours : vue compacte, statut modifiable directement -->
-    <h2 id="titre-semaine">Cette semaine</h2>
+    <h2 id="titre-semaine">Aujourd'hui</h2>
     <div id="cette-semaine"></div>
 
     <!-- Graphiques -->
@@ -46,7 +46,7 @@
     </figure>
     <figure class="chart">
       <div id="chart-seances"></div>
-      <figcaption>Séances faites par semaine (hors optionnelles ; vert = semaine complète)</figcaption>
+      <figcaption>Jours d'entraînement par semaine (objectif : 5-6)</figcaption>
     </figure>
     <figure class="chart">
       <div id="chart-pied"></div>
@@ -69,6 +69,7 @@
 
 <script src="assets/sync-fichier.js"></script>
 <script src="assets/programme-data.js"></script>
+<script src="assets/file-seances.js"></script>
 <script src="assets/main.js"></script>
 <script src="assets/charts.js"></script>
 <script src="assets/seance.js"></script>
@@ -82,103 +83,33 @@
    exclues de l'assiduité et des graphiques de complétion. */
 "use strict";
 
-/* Séances attendues "à ce jour" : prorata jour par jour du menu
-   non-optionnel de chaque semaine (planning flexible). */
-function attenduesACeJour() {
-  const dates = datesDuBloc(), aujourdhui = aujourdhuiISO();
-  let total = 0;
-  BLOC.semaines.forEach((sem, wi) => {
-    const joursActifs = dates.slice(wi * 7, wi * 7 + 7)
-      .filter(d => !BLOC.repriseReelle || d >= BLOC.repriseReelle);
-    const joursEcoulesSem = joursActifs.filter(d => d <= aujourdhui).length;
-    const nonOpt = sem.seances.filter(s => !s.optionnel).length;
-    if (joursActifs.length) total += nonOpt * joursEcoulesSem / joursActifs.length;
-  });
-  return Math.round(total);
-}
-
+/* Bloc en file d'attente : on compte ce qui a été FAIT, sur 7 jours glissants */
 function calculerStats() {
-  const seances = toutesLesSeances();
-  const nonOpt = seances.filter(s => !s.optionnel);
-  const faites = nonOpt.filter(s => estFaite(s.id)).length;
-  const bonus = seances.filter(s => s.optionnel && estFaite(s.id)).length;
-  const pasPu = seances.filter(s => statutDe(s.id) === "pas-pu").length;
-  const attendues = attenduesACeJour();
-  const assiduite = attendues ? Math.min(100, Math.round(100 * faites / attendues)) : null;
-
-  const dates = datesDuBloc(), aujourdhui = aujourdhuiISO();
-  const joursPasses = dates.filter(d => d <= aujourdhui);
-  const piedFaits = joursPasses.filter(d => state[`journal.${d}.pied`]).length;
-
-  const el = document.getElementById("stats");
-  el.innerHTML = `
-    <div class="stat ${assiduite === null || assiduite >= 80 ? "ok" : "warn"}">
-      <div class="val">${assiduite === null ? "—" : assiduite + " %"}</div>
-      <div class="lab">Assiduité<br>(faites vs attendues à ce jour)</div>
-    </div>
-    <div class="stat"><div class="val">${faites}/${nonOpt.length}</div><div class="lab">Séances du bloc${bonus ? `<br>+ ${bonus} optionnelle${bonus > 1 ? "s" : ""} 🎁` : ""}</div></div>
-    <div class="stat ${pasPu === 0 ? "ok" : "warn"}"><div class="val">${pasPu}</div><div class="lab">Empêchements<br>(« pas pu »)</div></div>
-    <div class="stat ${joursPasses.length === 0 || piedFaits / Math.max(joursPasses.length, 1) >= 0.8 ? "ok" : "warn"}">
-      <div class="val">${piedFaits}/${joursPasses.length}</div><div class="lab">Rééduc pied (jours)</div>
-    </div>`;
+  const auj = aujourdhuiISO();
+  const sept = activitesEntre(state, decalerDate(auj, -6), auj);
+  const total = activites(state).length;
+  const etape = Math.min(prochaineEtape(state, "course", auj), COURSE_ETAPES.length);
+  const dates = datesDuBloc().filter(d => d <= auj);
+  const piedFaits = dates.filter(d => state[`journal.${d}.pied`]).length;
+  document.getElementById("stats").innerHTML = `
+    <div class="stat ${new Set(sept.map(a => a.date)).size >= 5 ? "ok" : "warn"}">
+      <div class="val">${new Set(sept.map(a => a.date)).size}/7</div><div class="lab">Jours d'entraînement<br>(7 derniers jours)</div></div>
+    <div class="stat"><div class="val">${total}</div><div class="lab">Séances depuis le début du bloc</div></div>
+    <div class="stat"><div class="val">${etape}/${COURSE_ETAPES.length}</div><div class="lab">Étapes course passées</div></div>
+    <div class="stat ${dates.length === 0 || piedFaits / Math.max(dates.length, 1) >= 0.8 ? "ok" : "warn"}">
+      <div class="val">${piedFaits}/${dates.length}</div><div class="lab">Rééduc pied (jours)</div></div>`;
 }
 
-/* Vue compacte de la semaine en cours : chaque séance avec son statut,
-   modifiable ici même. Le détail complet reste sur la page Programme. */
+function decalerDate(iso, n) { return fsDecaler(iso, n); }
+
 function afficherSemaine() {
-  const dates = datesDuBloc(), aujourdhui = aujourdhuiISO();
+  const p = planDuJour(state, aujourdhuiISO());
   const el = document.getElementById("cette-semaine");
-  const titre = document.getElementById("titre-semaine");
-
-  if (aujourdhui < dates[0]) {
-    titre.textContent = "Avant le départ";
-    el.innerHTML = `<div class="card">Le bloc démarre le <strong>lundi 5 octobre</strong>.
-      D'ici là : mesures de départ (page <a href="tests.html">Tests</a>) et la section sèche du
-      <a href="guide.html">Guide du coach</a>.</div>`;
-    return;
-  }
-  if (aujourdhui > dates[dates.length - 1]) {
-    titre.textContent = "Bloc terminé";
-    el.innerHTML = `<div class="card">Bloc terminé 🎉 — remplis la page <a href="tests.html">Tests</a>,
-      exporte tes données et envoie-moi le fichier pour janvier (régime inversé).</div>`;
-    return;
-  }
-
-  const wi = Math.floor(dates.indexOf(aujourdhui) / 7);
-  const sem = BLOC.semaines[wi];
-  titre.textContent = `Cette semaine — Semaine ${sem.num} : ${sem.theme}`;
-
-  const restantes = sem.seances.filter(s => !s.optionnel && !estFaite(s.id) && statutDe(s.id) !== "pas-pu").length;
-  el.innerHTML = `
-    <p style="color:var(--text-2)">${restantes === 0
-      ? "Menu de la semaine terminé 💪 — tout le reste est du bonus."
-      : `Encore <strong>${restantes}</strong> séance${restantes > 1 ? "s" : ""} au menu — tu choisis quoi faire aujourd'hui.`}
-      <a href="programme.html">Détails des séances →</a></p>` +
-    sem.seances.map(s => {
-      const statut = statutDe(s.id);
-      const classe = estFaite(s.id) ? "faite" : (statut === "pas-pu" ? "paspu" : "");
-      return `
-      <div class="mini-seance ${classe}" id="mini-${s.id}">
-        <span class="badge ${s.type}">${TYPE_LABELS[s.type] || s.type}</span>
-        <span class="titre">${s.titre}${s.optionnel ? ' <span class="badge repos">opt.</span>' : ""}</span>
-        <select data-bind="seance.${s.id}.statut">
-          ${STATUTS.map(o => `<option value="${o.val}" ${o.val === statut ? "selected" : ""}>${o.label}</option>`).join("")}
-        </select>
-      </div>`;
-    }).join("");
-  bindAll(el);
+  const txt = p.etat === "seance" && p.seance ? `<strong>${p.seance.titre}</strong> — ${p.seance.duree}`
+    : p.etat === "fait" ? "Séance du jour faite ✓" : p.etat === "termine" ? "Bloc terminé 🎉" : "Repos / jour off";
+  el.innerHTML = `<div class="card">${txt}<br><a href="../ironman-simple/">Ouvrir la séance sur le site simple →</a>
+    · <a href="programme.html">Voir toutes les progressions →</a></div>`;
 }
-
-/* Couleur des mini-cartes quand un statut change ici ou ailleurs */
-document.addEventListener("state:change", e => {
-  const m = e.detail.cle.match(/^seance\.(.+)\.statut$/);
-  if (!m) return;
-  const mini = document.getElementById(`mini-${m[1]}`);
-  if (mini) {
-    mini.classList.toggle("faite", estFaite(m[1]));
-    mini.classList.toggle("paspu", statutDe(m[1]) === "pas-pu");
-  }
-});
 
 function dessinerGraphiques() {
   const dates = datesDuBloc();
@@ -194,20 +125,20 @@ function dessinerGraphiques() {
     return { x: d.slice(8, 10) + "/" + d.slice(5, 7), y: (v === undefined || v === "") ? null : v };
   }), { unite: "/10", decimales: 0 });
 
-  // Séances non-optionnelles faites (ou adaptées) par semaine
-  const seances = toutesLesSeances();
-  barresSVG("#chart-seances", BLOC.semaines.map(sem => ({
+  // Jours d'entraînement par semaine (file d'attente : ce qui a été fait)
+  const acts = activites(state);
+  barresSVG("#chart-seances", BLOC.semaines.map((sem, wi) => ({
     x: "Sem. " + sem.num,
-    y: seances.filter(s => s.semaine === sem.num && !s.optionnel && estFaite(s.id)).length,
-    max: sem.seances.filter(s => !s.optionnel).length,
-  })));
+    y: new Set(acts.filter(a => dates.slice(wi * 7, wi * 7 + 7).includes(a.date)).map(a => a.date)).size,
+    max: 6,
+  })).filter((_, wi) => dates[wi * 7] <= aujourdhuiISO()));
 
   // Rééduc pied par semaine
   barresSVG("#chart-pied", BLOC.semaines.map((sem, wi) => ({
     x: "Sem. " + sem.num,
     y: dates.slice(wi * 7, wi * 7 + 7).filter(d => state[`journal.${d}.pied`]).length,
     max: 7,
-  })));
+  })).filter((_, wi) => dates[wi * 7] <= aujourdhuiISO()));
 }
 
 function rafraichir() { calculerStats(); dessinerGraphiques(); }

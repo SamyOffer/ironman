@@ -95,13 +95,20 @@ Les séances non prévues se loggent via « + Ajouter une séance libre »
 
 ## Données clés du bloc
 
-- Bloc 4 « Reprise claire » : 16 nov. 2026 → 21 févr. 2027 (14 semaines).
-  Jours fixes : Lun natation · Mar vélo Z2 (S1-S6) puis natation 2 (S7-S14) ·
-  Mer Lower · Jeu Upper A · Ven course · Sam Upper B · Dim course. Chaque
-  séance porte `jour` (0 = lundi) : le site simple affiche la séance du jour
-  en bandeau et l'ouvre dans la liste. Chaque séance finit par sa « version
-  courte » (jours sans énergie). Les semaines d'examen (10 déc., 4 et 22 janv.)
-  ont des consignes par jour (`notes` dans `PLAN`).
+- Bloc 4 « Reprise claire » en FILE D'ATTENTE (depuis le 20 nov. 2026, démarré
+  le 16 nov.). Plus aucune séance n'est collée à une date : chaque sport a sa
+  progression en étapes (`COURSE_ETAPES`, `NAT_ETAPES`, `VELO_ETAPES`, rotation
+  muscu `ROTATION_MUSCU` dans `programme-data.js`). Le moteur
+  `assets/file-seances.js` (fonctions pures sur l'état) choisit chaque jour la
+  séance du sport le plus en retard sur 7 jours glissants (cibles : 3 muscu,
+  2 course, 1 vélo, 1-2 natation), en respectant les règles du pied (48 h entre
+  deux courses, pas de course la veille/le lendemain du Lower, −1 étape après
+  10 jours sans courir). ✓ = l'étape avance, ≈ = on la refait. Boutons « Autre
+  séance » (`journal.<date>.passer`), « Pas le temps aujourd'hui »
+  (`journal.<date>.off`), « J'ai fait autre chose » (`libre.<i>.*`). Natation
+  pausable (`reglage.natation`). Tests débloqués à la fin de la progression
+  course. `BLOC.semaines` ne sert plus qu'au découpage calendaire (journal,
+  graphiques).
 - Nutrition sans compter (`NUTRITION` + `htmlNutrition`, section
   « Manger sans compter » du site simple) : méthode de l'assiette, collation
   avant la séance, ajustement des féculents toutes les 2 semaines sur la
